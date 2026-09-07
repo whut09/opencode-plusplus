@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -150,6 +151,43 @@ test("UX baseline D: source edits without an executable verifier stop for human 
     assert.equal(metrics.verificationCommands, 0);
     assert.ok(metrics.humanReviews >= 1);
     assert.equal(metrics.finalDecision, "human-review", JSON.stringify({ evaluated, next, metrics }));
+  } finally {
+    cleanupHarnessUxFixture(fixture);
+  }
+});
+
+test("UX baseline E: Build agent turns the OpenCode++ runtime completely inactive", async () => {
+  const fixture = await createHarnessUxFixture({ scenarioId: "build-agent", withTests: true, withCheck: true, agent: "build" });
+  try {
+    const rawPrepare = fixture.plugin.tool?.opencode_plusplus_prepare as {
+      execute: (args?: unknown, context?: unknown) => Promise<string>;
+    };
+    const inactive = JSON.parse(
+      await rawPrepare.execute(
+        { task: "fix the profile timeout", type: "bugfix" },
+        { sessionID: fixture.sessionId, agent: fixture.agent }
+      )
+    ) as { active?: boolean; error?: { code?: string } };
+    assert.equal(inactive.active, false);
+    assert.equal(inactive.error?.code, "HARNESS_INACTIVE_AGENT");
+
+    const before = fixture.plugin["tool.execute.before"] as (input: unknown, output: unknown) => Promise<void>;
+    const after = fixture.plugin["tool.execute.after"] as (input: unknown, output: unknown) => Promise<void>;
+    await before({ tool: "shell", sessionID: fixture.sessionId, callID: "build-shell" }, { args: { command: "npm run test" } });
+    await after(
+      { tool: "shell", sessionID: fixture.sessionId, callID: "build-shell" },
+      { exitCode: 0, stdout: "ok", stderr: "", args: { command: "npm run test" } }
+    );
+    const eventHook = fixture.plugin.event as (input: { event?: Record<string, unknown> }) => Promise<void>;
+    await eventHook({ event: { type: "file.edited", sessionID: fixture.sessionId, properties: { file: "src/profile.ts" } } });
+    const metrics = finishHarnessUxFixture(fixture);
+
+    assert.equal(metrics.harnessToolCalls, 0);
+    assert.equal(metrics.modelVisibleHarnessSteps, 0);
+    assert.equal(metrics.automaticRuntimeSteps, 0);
+    assert.equal(metrics.verificationCommands, 0);
+    assert.equal(metrics.finalDecision, null);
+    assert.equal(existsSync(`${fixture.root}/.agent-context`), false);
   } finally {
     cleanupHarnessUxFixture(fixture);
   }
