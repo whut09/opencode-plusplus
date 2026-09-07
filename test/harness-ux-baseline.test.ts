@@ -162,7 +162,7 @@ test("UX baseline D: source edits without an executable verifier stop for human 
 test("UX baseline E: Build agent turns the OpenCode++ runtime completely inactive", async () => {
   const fixture = await createHarnessUxFixture({ scenarioId: "build-agent", withTests: true, withCheck: true, agent: "build" });
   try {
-    const rawPrepare = fixture.plugin.tool?.opencode_plusplus_prepare as {
+    const rawPrepare = (fixture.plugin.tool as Record<string, unknown> | undefined)?.opencode_plusplus_prepare as {
       execute: (args?: unknown, context?: unknown) => Promise<string>;
     };
     const inactive = JSON.parse(
