@@ -76,7 +76,7 @@ export function instrumentHarnessTools(plugin: PluginLike, metrics: HarnessUxMet
 }
 
 export function recordVerificationCommand(metrics: HarnessUxMetrics, command: string, exitCode: number): void {
-  if (command.trim() && exitCode === 0) metrics.verificationCommands += 1;
+  if (command.trim() && Number.isInteger(exitCode)) metrics.verificationCommands += 1;
 }
 
 export function recordUserInterruption(metrics: HarnessUxMetrics): void {
@@ -95,7 +95,7 @@ export function observeRuntimeTrace(metrics: HarnessUxMetrics, root: string): Ha
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line) as { type?: unknown });
   metrics.runtimeEvents = events.map((event) => (typeof event.type === "string" ? event.type : "unknown"));
-  metrics.automaticRuntimeSteps = metrics.runtimeEvents.length;
+  metrics.automaticRuntimeSteps = events.filter((event) => event.type !== "sidecar.log").length;
   return metrics;
 }
 

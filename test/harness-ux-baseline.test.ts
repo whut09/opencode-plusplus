@@ -87,7 +87,7 @@ test("UX baseline B: failed verification and repair record two evaluation cycles
     assert.equal(metrics.userApprovals, 0);
     assert.equal(metrics.userInterruptions, 0);
     assert.equal(metrics.humanReviews, 0);
-    assert.equal(metrics.verificationCommands, 2);
+    assert.equal(metrics.verificationCommands, 3);
     assert.equal(metrics.finalDecision, "run-tests", JSON.stringify({ firstEvaluate, firstNext, secondEvaluate, secondNext, metrics }));
   } finally {
     cleanupHarnessUxFixture(fixture);
