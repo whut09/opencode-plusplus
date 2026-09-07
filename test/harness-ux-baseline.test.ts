@@ -111,7 +111,10 @@ test("UX baseline C: docs-only edits avoid a full-suite command but still expose
     assert.equal(evaluated.ok, true);
     assert.equal(next.ok, true);
     assert.equal(dashboard.ok, true);
-    assert.equal(evaluated.findings.some((finding) => finding.startsWith("policy.required.tests:")), false);
+    assert.equal(
+      evaluated.findings.some((finding) => finding.startsWith("policy.required.tests:")),
+      false
+    );
     assert.equal(evaluated.requiredCommands.includes("npm run test"), false);
     assert.equal(evaluated.decision, "run-tests");
     assert.equal(next.nextAction, "run-tests");
@@ -163,10 +166,7 @@ test("UX baseline E: Build agent turns the OpenCode++ runtime completely inactiv
       execute: (args?: unknown, context?: unknown) => Promise<string>;
     };
     const inactive = JSON.parse(
-      await rawPrepare.execute(
-        { task: "fix the profile timeout", type: "bugfix" },
-        { sessionID: fixture.sessionId, agent: fixture.agent }
-      )
+      await rawPrepare.execute({ task: "fix the profile timeout", type: "bugfix" }, { sessionID: fixture.sessionId, agent: fixture.agent })
     ) as { active?: boolean; error?: { code?: string } };
     assert.equal(inactive.active, false);
     assert.equal(inactive.error?.code, "HARNESS_INACTIVE_AGENT");

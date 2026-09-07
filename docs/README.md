@@ -54,6 +54,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 - [Runtime State Machine](developer/runtime-state-machine.md)
 - [Guard Gate Schema](developer/guard-gate-schema.md)
 - [Benchmark Guide](developer/benchmark-guide.md)
+- [Desktop Harness Usability Baseline](developer/usability-baseline.md)
 
 ## Reference
 
