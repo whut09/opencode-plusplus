@@ -92,3 +92,34 @@ test("UX baseline B: failed verification and repair record two evaluation cycles
     cleanupHarnessUxFixture(fixture);
   }
 });
+
+test("UX baseline C: docs-only edits avoid a full-suite command but still expose current loop cost", async () => {
+  const fixture = await createHarnessUxFixture({ scenarioId: "docs-only", withTests: true, withCheck: true, docsOnly: true });
+  try {
+    const prepared = result(await callHarnessTool(fixture, "prepare", { task: "update documentation", type: "bugfix" }));
+    assert.equal(prepared.ok, true);
+    const retrieved = result(await callHarnessTool(fixture, "retrieve", { task: "update documentation", topK: 4 }));
+    assert.equal(retrieved.ok, true);
+
+    await editFixtureFile(fixture, "docs.md", "# Updated documentation\n");
+    const evaluated = result(await callHarnessTool(fixture, "evaluate", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const next = result(await callHarnessTool(fixture, "next", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const dashboard = result(await callHarnessTool(fixture, "dashboard", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const metrics = finishHarnessUxFixture(fixture);
+
+    assert.equal(evaluated.ok, true);
+    assert.equal(next.ok, true);
+    assert.equal(dashboard.ok, true);
+    assert.equal(evaluated.findings.some((finding) => finding.startsWith("policy.required.tests:")), false);
+    assert.equal(evaluated.requiredCommands.includes("npm run test"), false);
+    assert.equal(evaluated.decision, "run-tests");
+    assert.equal(next.nextAction, "run-tests");
+    assert.equal(metrics.harnessToolCalls, 5);
+    assert.equal(metrics.modelVisibleHarnessSteps, 5);
+    assert.equal(metrics.verificationCommands, 0);
+    assert.equal(metrics.humanReviews, 0);
+    assert.equal(metrics.finalDecision, "run-tests", JSON.stringify({ evaluated, next, metrics }));
+  } finally {
+    cleanupHarnessUxFixture(fixture);
+  }
+});
