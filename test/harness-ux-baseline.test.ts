@@ -123,3 +123,34 @@ test("UX baseline C: docs-only edits avoid a full-suite command but still expose
     cleanupHarnessUxFixture(fixture);
   }
 });
+
+test("UX baseline D: source edits without an executable verifier stop for human review", async () => {
+  const fixture = await createHarnessUxFixture({ scenarioId: "no-verification", withTests: false, withCheck: false });
+  try {
+    const prepared = result(await callHarnessTool(fixture, "prepare", { task: "fix the profile timeout", type: "bugfix" }));
+    assert.equal(prepared.ok, true);
+    const retrieved = result(await callHarnessTool(fixture, "retrieve", { task: "fix the profile timeout", topK: 4 }));
+    assert.equal(retrieved.ok, true);
+
+    await editFixtureFile(fixture, "src/profile.ts", "export function profileTimeout() { return 10; }\n");
+    const evaluated = result(await callHarnessTool(fixture, "evaluate", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const next = result(await callHarnessTool(fixture, "next", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const dashboard = result(await callHarnessTool(fixture, "dashboard", { taskId: prepared.taskId, sessionId: fixture.sessionId }));
+    const metrics = finishHarnessUxFixture(fixture);
+
+    assert.equal(evaluated.ok, true);
+    assert.equal(next.ok, true);
+    assert.equal(dashboard.ok, true);
+    assert.equal(evaluated.decision, "human-review");
+    assert.equal(evaluated.blocking, true);
+    assert.equal(next.nextAction, "human-review");
+    assert.ok(evaluated.findings.some((finding) => /test evidence/i.test(finding)));
+    assert.equal(metrics.harnessToolCalls, 5);
+    assert.equal(metrics.modelVisibleHarnessSteps, 5);
+    assert.equal(metrics.verificationCommands, 0);
+    assert.ok(metrics.humanReviews >= 1);
+    assert.equal(metrics.finalDecision, "human-review", JSON.stringify({ evaluated, next, metrics }));
+  } finally {
+    cleanupHarnessUxFixture(fixture);
+  }
+});
