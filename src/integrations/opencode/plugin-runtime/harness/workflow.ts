@@ -17,7 +17,15 @@ export function readWorkflowState(root: string, sessionId: string): PluginWorkfl
 export function initializeWorkflowState(root: string, sessionId: string): PluginWorkflowState {
   const current = currentSidecarWorkingTreeHash(root);
   const existing = readWorkflowState(root, sessionId);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.boundaryRevision !== undefined) return existing;
+    return updateJsonAtomic<PluginWorkflowState>(workflowStatePath(root, sessionId), (state) => ({
+      ...(state ?? existing),
+      schemaVersion: 1,
+      boundaryRevision: 1,
+      updatedAt: new Date().toISOString()
+    }));
+  }
   const state: PluginWorkflowState = {
     schemaVersion: 1,
     revision: 1,

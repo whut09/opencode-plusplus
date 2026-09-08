@@ -71,6 +71,7 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
       contextFingerprint: contextFingerprint(root, resolvedTaskId),
       initialWorkingTreeHash: currentSidecarWorkingTreeHash(root),
       editBoundary: { allowedEditGlobs: manifest.allowedEditGlobs, avoidEditGlobs: manifest.avoidEditGlobs },
+      boundaryRevision: manifest.boundaryRevision ?? 1,
       requiredTests: requiredCommands,
       eventKey: `prepare:${resolvedTaskId}`
     });
@@ -90,6 +91,7 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
     mustInspect: manifest.mustInspect,
     allowedEditGlobs: manifest.allowedEditGlobs,
     avoidEditGlobs: manifest.avoidEditGlobs,
+    boundaryRevision: manifest.boundaryRevision ?? 1,
     requiredCommands,
     verification,
     artifacts,

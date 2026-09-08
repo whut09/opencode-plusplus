@@ -243,6 +243,7 @@ export interface PluginHarnessResult {
   mustInspect: string[];
   allowedEditGlobs: string[];
   avoidEditGlobs: string[];
+  boundaryRevision?: number;
   artifacts: string[];
   nextAction: string;
   hits?: Array<{ path: string; score: number; reason: string; scoreBreakdown?: Record<string, number> }>;

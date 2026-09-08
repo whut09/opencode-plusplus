@@ -33,6 +33,7 @@ export interface TaskRunManifest {
   contextFiles?: string[];
   allowedEditGlobs: string[];
   avoidEditGlobs: string[];
+  boundaryRevision?: number;
   relatedTests: string[];
   requiredCommands: string[];
   requiredRegressionTests: string[];
@@ -151,6 +152,7 @@ function buildTaskRunManifest(
     contextFiles: dedupe(pack.files.map((file) => file.path)),
     allowedEditGlobs: options.allowedEditGlobs,
     avoidEditGlobs: options.avoidEditGlobs,
+    boundaryRevision: 1,
     relatedTests: dedupe([...options.testSelection.minimalTests, ...options.testSelection.recommendedRegressionTests]),
     requiredCommands,
     requiredRegressionTests: options.regression.requiredTests,
