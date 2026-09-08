@@ -167,7 +167,15 @@ function evidenceCommand(evidence: ResolutionEvidence): string | undefined {
 }
 
 function isCommandEvidence(evidence: ResolutionEvidence): boolean {
-  return evidence.kind === "command" || evidence.kind === "ci";
+  if (evidence.kind !== "command" && evidence.kind !== "ci") return false;
+  const detail = evidence.details?.find((item) => item.trim());
+  return Boolean(detail && isExecutableCommand(detail));
+}
+
+function isExecutableCommand(value: string): boolean {
+  return /^(?:\.?[\\/]?\.?[\\w.-]+[\\/]?)?(?:npm(?:\.cmd)?|pnpm|yarn|bun|node|npx|python(?:\.exe)?|pytest|go|cargo|dotnet|mvn(?:w)?|gradle(?:w)?|opencode-plusplus)\b/i.test(
+    value.trim()
+  );
 }
 
 function unique(items: string[]): string[] {

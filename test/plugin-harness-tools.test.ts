@@ -79,7 +79,8 @@ test("prepare is idempotent, task state is isolated, and next consumes current e
     assert.equal(second.taskIdSource, "created");
     assert.equal(second.nextAction, "evaluate");
     assert.ok(second.interventions);
-    assert.match(second.humanReadable ?? "", /Decision:/);
+    assert.match(second.humanReadable ?? "", /OpenCode\+\+/);
+    assert.match(second.humanReadable ?? "", /Suggested checks/);
     assert.ok((second.interventions?.selectedFiles.length ?? 0) > 0);
     assert.deepEqual(second.interventions?.selectedFiles, first.interventions?.selectedFiles);
     assert.equal(second.blocking, true);
@@ -168,7 +169,8 @@ test("Desktop evaluate stops when the repository has no runnable test command", 
     );
     assert.ok(evaluated.findings.some((finding) => /test evidence/i.test(finding)));
     assert.match(evaluated.humanReadable ?? "", /human-review/i);
-    assert.match(evaluated.humanReadable ?? "", /OpenCode\+\+ action summary/);
+    assert.match(evaluated.humanReadable ?? "", /OpenCode\+\+ ⚠ Human review/);
+    assert.match(evaluated.humanReadable ?? "", /Need you/);
     assert.match(evaluated.humanReadable ?? "", /No runnable test command is configured/);
     assert.equal(next.nextAction, "human-review");
   } finally {
