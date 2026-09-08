@@ -58,6 +58,9 @@ function discoverProjectFiles(root: string): string[] {
       [
         "package.json",
         "**/package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
         "pyproject.toml",
         "pytest.ini",
         "tox.ini",

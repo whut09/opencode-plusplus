@@ -53,8 +53,11 @@ function selectCommands(
 
   const selected: VerificationCommand[] = [];
   const packagePaths = classification.affectedPackages;
-  const packageScoped = (kind: VerificationCommandKind): VerificationCommand[] =>
-    discovered.filter((command) => command.kind === kind && isRelevantPackageCommand(command, packagePaths));
+  const packageScoped = (kind: VerificationCommandKind): VerificationCommand[] => {
+    const packageCommands = discovered.filter((command) => command.kind === kind && command.packagePath && isRelevantPackageCommand(command, packagePaths));
+    if (packageCommands.length) return packageCommands;
+    return discovered.filter((command) => command.kind === kind && !command.packagePath && isRelevantPackageCommand(command, []));
+  };
   const rootOrWorkspace = (kind: VerificationCommandKind): VerificationCommand[] =>
     discovered.filter((command) => command.kind === kind && (command.scope === "workspace" || command.scope === "repository"));
 
