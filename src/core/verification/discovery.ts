@@ -386,12 +386,13 @@ function formatNodeScript(runner: string, name: string): string {
 }
 
 function kindForScript(name: string, command: string): VerificationCommandKind | null {
-  const value = `${name} ${command}`.toLowerCase();
+  const scriptName = name.trim().toLowerCase();
+  const value = `${scriptName} ${command}`.trim().toLowerCase();
+  if (/^(build|compile|bundle|package)(:|$)/.test(scriptName)) return "build";
   if (/test|spec|coverage|e2e|integration/.test(value)) return "test";
   if (/lint|format|ruff|eslint|prettier/.test(value)) return "lint";
+  if (/docs?|markdownlint|mdlint|typedoc/.test(scriptName)) return "docs";
   if (/typecheck|type-check|check-types|tsc|mypy|pyright|check$/.test(value)) return "typecheck";
-  if (/markdownlint|docs?|typedoc/.test(value)) return "docs";
-  if (/build|compile|bundle|package/.test(value)) return "build";
   return null;
 }
 
