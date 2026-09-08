@@ -103,6 +103,7 @@ test("task run writes a complete agent execution context", async () => {
       "run.json",
       "state.json",
       "tests.md",
+      "verification-plan.md",
       "verify.md"
     ]);
     assert.equal(manifest.task, "fix login timeout bug");
