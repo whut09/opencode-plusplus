@@ -10,8 +10,8 @@ OpenCode++ is a Windows plugin for OpenCode Desktop. It is useful when a plausib
 2. Fully exit OpenCode Desktop, double-click the EXE, and wait for the confirmation message.
 3. Restart OpenCode Desktop, open a repository, and select **OpenCode++** in the mode picker.
 4. Describe a coding task normally. Do not start an OpenCode++ CLI command and do not add a second model.
-5. After the task reaches `evaluate` or `next`, read the `OpenCode++ action summary` at the top of the returned tool result.
-6. Open the `dashboard` tool or `.agent-context/sidecar/visualization.json` for the phase view; open `.agent-context/sidecar/latest.md` for the latest report.
+5. After the task reaches `evaluate` or `next`, read the compact `OpenCode++` status at the top of the returned tool result.
+6. Call `opencode_plusplus_dashboard` or open `.agent-context/sidecar/visualization.json` when you need the detailed phase view; open `.agent-context/sidecar/latest.md` for the latest report.
 
 ![OpenCode++ mode](images/opencode-plusplus-mode.png)
 
@@ -19,7 +19,13 @@ OpenCode++ is a Windows plugin for OpenCode Desktop. It is useful when a plausib
 
 The mode prompt steers the current model through `retrieve` and `prepare` before edits, built-in shell execution for required commands, and `evaluate` plus `next` after edits. The plugin runs these tools in-process inside OpenCode Desktop. If a check is stale, missing, forbidden, or repeated without progress, the Harness reports the reason instead of silently claiming success.
 
-The visible result answers six concrete questions:
+The compact result answers the immediate question without printing every empty category:
+
+- `✓ Verified`: current evidence allows finalization;
+- `✗ Repair required`: a check or policy gate still blocks the task;
+- `⚠ Human review`: OpenCode++ cannot prove the required condition automatically.
+
+The structured result and detailed Dashboard answer six audit questions:
 
 - `observed`: what OpenCode++ recorded;
 - `prevented`: which command, path, or policy risk it blocked;
@@ -28,7 +34,7 @@ The visible result answers six concrete questions:
 - `verified`: which repair has fresh command or CI evidence for the current working tree;
 - `unresolved`: what still blocks completion.
 
-The current model may provide a natural-language task summary, but that summary is not the Harness record. Use `actionSummary`, the Dashboard, and `.agent-context/` when you need to know what OpenCode++ itself did.
+The current model may provide a natural-language task summary, but that summary is not the Harness record. Use `actionSummary`, the Dashboard, and `.agent-context/` when you need to know what OpenCode++ itself did. See [Harness Output](reference/harness-output.md) for the two display layers and Toast rules.
 
 ## If The Mode Is Missing
 

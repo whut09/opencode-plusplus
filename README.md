@@ -59,7 +59,7 @@ By default the plugin works offline: it does not fetch remote Context sources an
 5. Select **OpenCode++** in the mode picker.
 6. Enter a normal request, such as `Fix the login timeout and add a regression test`.
 7. Let the selected mode call `prepare`, `retrieve`, `evaluate`, and `next` while it works. Do not switch back to Build for a task that needs the Harness gates.
-8. Inspect the returned **Harness Dashboard** after `evaluate`, or call `opencode_plusplus_dashboard`, to see stage progress, selected and rejected files, decision basis, evidence freshness, interventions, and the final summary.
+8. Read the compact status after `evaluate` or `next`. Call `opencode_plusplus_dashboard` when you want stage progress, selected and rejected files, decision basis, evidence freshness, interventions, and the final summary.
 9. Inspect `.agent-context/` when you need the trace, findings, required commands, or final report.
 
 The installer writes only these OpenCode configuration files:
@@ -87,7 +87,7 @@ The plugin is not an operating-system sandbox. It cannot stop another applicatio
 
 ### What The User Sees
 
-The Desktop tool result includes a visible `OpenCode++ action summary` and Harness Dashboard. The summary directly lists `observed`, `prevented`, `requested`, `repaired`, `verified`, and `unresolved` items. The Dashboard shows `Plan -> Prepare -> Retrieve -> Execute -> Collect -> Evaluate -> Decide -> Persist -> Finalize`, with completed, active, blocked, and pending stages. It also shows the current decision, required commands, current working-tree hash capture, evidence status, intervention counts, selected/rejected files, and a concise final summary.
+The Desktop tool result defaults to a compact `OpenCode++ ✓ Verified`, `✗ Repair required`, or `⚠ Human review` status. The structured JSON still contains `actionSummary` with `observed`, `prevented`, `requested`, `repaired`, `verified`, and `unresolved` items. Call `opencode_plusplus_dashboard` for the full `Plan -> Prepare -> Retrieve -> Execute -> Collect -> Evaluate -> Decide -> Persist -> Finalize` view with decision basis, evidence freshness, intervention counts, and selected/rejected files. See [Harness Output](docs/reference/harness-output.md).
 
 The dashboard exposes recorded system facts and decision inputs. It does not expose hidden model chain-of-thought. This keeps the view useful for debugging and review without presenting private internal reasoning as an auditable fact.
 

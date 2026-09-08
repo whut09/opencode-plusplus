@@ -37,7 +37,7 @@ The primary mode instructs the current model to call `prepare` before editing, u
 
 ## What Desktop Reports
 
-Every rendered Harness result includes a structured `actionSummary` and a human-readable bilingual summary. The categories are deliberately separate:
+Every rendered Harness result includes a structured `actionSummary`. Normal `humanReadable` output is a compact status; the full Dashboard is available through the explicit `opencode_plusplus_dashboard` tool and in human-review results. The categories remain deliberately separate:
 
 | Category     | Meaning                                                                          |
 | ------------ | -------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ Every rendered Harness result includes a structured `actionSummary` and a human-
 | `verified`   | A valid command or CI result matches the current working-tree hash.              |
 | `unresolved` | A blocker or review item remains active.                                         |
 
-The result also shows selected and rejected files, findings, required commands, evidence freshness, decision, next action, and the current working-tree hash. Commit lists, model explanations, and test claims that were not captured by the plugin are not OpenCode++ actions. `human-review` reports the exact missing evidence or boundary decision; it does not mean the user must repeat the entire task.
+The structured result and Dashboard show selected and rejected files, findings, required commands, evidence freshness, decision, next action, and the current working-tree hash. Compact output omits empty categories and labels unexecuted commands as suggestions. Commit lists, model explanations, and test claims that were not captured by the plugin are not OpenCode++ actions. `human-review` reports the exact missing evidence or boundary decision; it does not mean the user must repeat the entire task. See [Harness Output](../reference/harness-output.md).
 
 ## Developer Surface A: Agent-Led Compatibility
 
