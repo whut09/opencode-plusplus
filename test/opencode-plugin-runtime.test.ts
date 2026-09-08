@@ -102,6 +102,39 @@ test("enabled OpenCode plugin guard rejection tells the model what to run instea
   }
 });
 
+test("enabled OpenCode plugin leaves approval-required commands to native permission", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-plugin-native-permission-"));
+  const stateFile = path.join(root, "state.json");
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile });
+    const before = plugin["tool.execute.before"] as (input: unknown, output: unknown) => Promise<void>;
+    const message = plugin["chat.message"] as (input: unknown) => Promise<void>;
+    await message({ sessionID: "session-approval", agent: "opencode-plusplus" });
+
+    await before({ tool: "shell", sessionID: "session-approval", callID: "call-install" }, { args: { command: "npm install zod" } });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("OpenCode auto approval cannot bypass a policy-blocked command", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-plugin-auto-policy-"));
+  const stateFile = path.join(root, "state.json");
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile });
+    const before = plugin["tool.execute.before"] as (input: unknown, output: unknown) => Promise<void>;
+    const message = plugin["chat.message"] as (input: unknown) => Promise<void>;
+    await message({ sessionID: "session-auto-policy", agent: "opencode-plusplus" });
+
+    await assert.rejects(
+      before({ tool: "shell", sessionID: "session-auto-policy", callID: "call-reset" }, { args: { command: "git reset --hard HEAD --auto" } }),
+      /BLOCKED: Hard git reset/
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("Build mode is silent on the next turn while OpenCode++ mode keeps guards active", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-agent-scope-"));
   const stateFile = path.join(root, "state.json");
