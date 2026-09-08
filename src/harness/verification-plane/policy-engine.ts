@@ -14,6 +14,9 @@ import { createGuardResult } from "../types.js";
 import { assessExternalContextPolicy, type ContextPolicyAssessment } from "../knowledge/context-policy.js";
 import type { ContextUsageRecord } from "../../context-registry/types.js";
 import { firstTestExecutionCommand } from "../../core/test-command.js";
+import { buildVerificationPlan } from "../../core/verification/planner.js";
+import { requiresSourceVerification } from "../../core/verification/classifier.js";
+import type { VerificationPlan } from "../../core/verification/types.js";
 
 export type PolicyKind = "forbidden" | "risk" | "required";
 export type PolicyStatus = "failed" | "warning" | "missing" | "satisfied";
@@ -61,6 +64,7 @@ export interface PolicyEngineReport {
   findings: PolicyFinding[];
   results: GuardResult[];
   contextPolicy?: ContextPolicyAssessment;
+  verification?: VerificationPlan;
 }
 
 export function buildPolicyReport(context: ContextPackage, options: PolicyEngineOptions = {}): PolicyEngineReport {
@@ -71,7 +75,8 @@ export function buildPolicyReport(context: ContextPackage, options: PolicyEngine
   const changed = changedFilesForPolicy(context, base);
   const indexed = new Map(context.index.files.map((file) => [file.path, file]));
   const changedIndexed = changed.actionable.map((file) => indexed.get(file)).filter((file): file is IndexedFile => Boolean(file));
-  const sourceOrConfigChanged = changedIndexed.some((file) => isPolicyRelevantFile(file));
+  const verification = buildVerificationPlan(context, { changedFiles: changed.actionable });
+  const sourceOrConfigChanged = requiresSourceVerification(verification.classification);
   const contracts = validateContracts(context, { base, diff: true });
   const freshness = assessFreshness(context);
   const drift = assessDrift(context);
@@ -95,7 +100,7 @@ export function buildPolicyReport(context: ContextPackage, options: PolicyEngine
     {
       kind: "tests",
       currentRepoHash,
-      requiredCommands: [...tests.minimalCommands, ...tests.recommendedCommands, ...tests.fullConfidenceCommands],
+      requiredCommands: verification.commands.filter((command) => command.kind === "test").map((command) => command.command),
       policy: evidencePolicy,
       sourceChanged: sourceOrConfigChanged
     },
@@ -210,10 +215,11 @@ export function buildPolicyReport(context: ContextPackage, options: PolicyEngine
           `${changedIndexed.filter((file) => isPolicyRelevantFile(file)).length} source/config file(s) changed.`,
           trace ? `Trace loaded: ${trace.id}.` : "No execution trace was provided.",
           ...testEvidence.evidence,
-          ...tests.fullConfidenceCommands.slice(0, 3).map((command) => `Suggested: ${command}`)
+          ...verification.commands.slice(0, 5).map((command) => `Suggested: ${command.command}`),
+          ...tests.fullConfidenceCommands.slice(0, 2).map((command) => `Existing selector suggestion: ${command}`)
         ],
         requiredAction:
-          firstTestExecutionCommand(tests.fullConfidenceCommands) ??
+          firstTestExecutionCommand(verification.commands.filter((command) => command.kind === "test").map((command) => command.command)) ??
           "No runnable test command is configured; choose or configure the repository test command before finalizing."
       })
     );
@@ -313,7 +319,8 @@ export function buildPolicyReport(context: ContextPackage, options: PolicyEngine
     summary,
     findings,
     results,
-    contextPolicy
+    contextPolicy,
+    verification
   };
 }
 
@@ -325,6 +332,7 @@ export function renderPolicyReport(report: PolicyEngineReport): string {
     `Base: ${report.base}`,
     `Fail on: ${report.failOn}`,
     `Evidence policy: ${report.evidencePolicy ?? "advisory"}`,
+    `Verification plan: ${report.verification?.classification.primaryKind ?? "legacy selector"}`,
     report.traceId ? `Trace: ${report.traceId} (${report.traceLoaded ? "loaded" : "missing"})` : "Trace: none",
     "",
     heading(2, "Summary"),
@@ -343,6 +351,13 @@ export function renderPolicyReport(report: PolicyEngineReport): string {
     "",
     heading(2, "Generated Context Changes"),
     bullet(report.generatedContextFiles.map(code)),
+    "",
+    heading(2, "Verification Plan"),
+    bullet(
+      report.verification?.commands.map(
+        (command) => `${command.command} (${command.scope}, ${command.estimatedCost}, ${command.confidence}) — ${command.reason}`
+      ) ?? []
+    ),
     "",
     heading(2, "External Context Provenance"),
     bullet(

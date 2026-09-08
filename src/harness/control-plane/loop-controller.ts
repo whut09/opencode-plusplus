@@ -13,6 +13,9 @@ import { bullet, code, heading, table } from "../../outputs/renderers/markdown.j
 import { buildRunStateSnapshot, writeRunState, type RunStateSnapshot } from "../../outputs/runtime-state.js";
 import { taskSlug } from "../../core/task-id.js";
 import { firstTestExecutionCommand } from "../../core/test-command.js";
+import { buildVerificationPlan } from "../../core/verification/planner.js";
+import { requiresSourceVerification } from "../../core/verification/classifier.js";
+import type { VerificationPlan } from "../../core/verification/types.js";
 
 export type LoopPhase = "preflight" | "after-edit" | "repair";
 export type LoopStatus = "ready" | "needs-context" | "needs-repair" | "needs-validation" | "blocked";
@@ -76,6 +79,7 @@ export interface LoopControllerReport {
   };
   decisions: LoopDecision[];
   runtime: RunStateSnapshot;
+  verification?: VerificationPlan;
 }
 
 type LoopTraceEvidenceLevel = EvidenceLevel;
@@ -99,14 +103,15 @@ export function buildLoopControllerReport(context: ContextPackage, task: string,
   const actionableContractsPassed = !actionableContractViolations.some((violation) => violation.severity === "error");
   const impact = buildChangeImpactReport(context, { base });
   const changedFiles = changedFilesForLoop(context, base);
+  const verification = buildVerificationPlan(context, { changedFiles });
   const tests = buildTestSelection(context, { diff: true, base });
   const taskPack = buildTaskPack(context, task, { type: options.type ?? "auto", tokenBudget: options.tokenBudget });
   const traceEvidence = inspectTraceEvidence(
     context.scan.root,
     options.traceId,
-    [...tests.minimalCommands, ...tests.recommendedCommands, ...tests.fullConfidenceCommands],
+    verification.commands.filter((command) => command.kind === "test").map((command) => command.command),
     evidencePolicy,
-    sourceOrConfigChanged(context, changedFiles)
+    requiresSourceVerification(verification.classification)
   );
   const decisions = decideNextSteps({
     task,
@@ -124,6 +129,9 @@ export function buildLoopControllerReport(context: ContextPackage, task: string,
     minimalCommands: tests.minimalCommands,
     regressionCommands: tests.recommendedCommands,
     fullConfidenceCommands: tests.fullConfidenceCommands,
+    verificationCommands: verification.commands.map((command) => command.command),
+    verificationRequired: verification.verificationRequired,
+    codeTestRequired: verification.codeTestRequired,
     taskPackOverBudget: taskPack.estimatedTokens > taskPack.tokenBudget,
     taskPackTokens: taskPack.estimatedTokens,
     taskPackBudget: taskPack.tokenBudget,
@@ -171,7 +179,8 @@ export function buildLoopControllerReport(context: ContextPackage, task: string,
       impactDependents: impact.directDependents.length + impact.transitiveDependents.length
     },
     decisions,
-    runtime
+    runtime,
+    verification
   };
 }
 
@@ -198,6 +207,8 @@ export function renderLoopControllerReport(report: LoopControllerReport): string
         ["Impact dependents", String(report.checks.impactDependents)],
         ["Trace loaded", report.trace.loaded ? "yes" : "no"],
         ["Passed test evidence", report.trace.passedTestEvidence],
+        ["Verification plan", report.verification?.classification.primaryKind ?? "legacy selector"],
+        ["Recommended commands", String(report.verification?.commands.length ?? 0)],
         ["Task pack budget", `${report.context.taskPackTokens.toLocaleString()} / ${report.context.taskPackBudget.toLocaleString()} estimated tokens`]
       ]
     ),
@@ -256,6 +267,9 @@ function decideNextSteps(input: {
   minimalCommands: string[];
   regressionCommands: string[];
   fullConfidenceCommands: string[];
+  verificationCommands: string[];
+  verificationRequired: boolean;
+  codeTestRequired: boolean;
   taskPackOverBudget: boolean;
   taskPackTokens: number;
   taskPackBudget: number;
@@ -349,25 +363,32 @@ function decideNextSteps(input: {
     );
   }
 
-  if (input.changedFiles.length && input.passedTestEvidence === "none") {
-    const testCommand = preferredTestCommand([...input.minimalCommands, ...input.regressionCommands, ...input.fullConfidenceCommands], input.task);
+  if (input.changedFiles.length && input.verificationRequired && input.passedTestEvidence === "none") {
+    const verificationCommand = input.codeTestRequired
+      ? preferredTestCommand(
+          [...input.verificationCommands, ...input.minimalCommands, ...input.regressionCommands, ...input.fullConfidenceCommands],
+          input.task
+        )
+      : firstUsefulCommand(input.verificationCommands, input.task);
     decisions.push(
       decision({
-        action: testCommand ? "run-tests" : "human-review",
+        action: verificationCommand ? "run-tests" : "human-review",
         priority: input.impactRisk === "High" ? "high" : "medium",
-        confidence: testCommand ? confidenceForRunTests(input) : 0.96,
+        confidence: verificationCommand ? confidenceForRunTests(input) : 0.96,
         blocking: true,
-        reason: testCommand
-          ? "The loop cannot close until an actual test command has been run."
+        reason: verificationCommand
+          ? input.codeTestRequired
+            ? "The loop cannot close until an actual test command has been run."
+            : "The docs-only change has a repository documentation verifier that should be run before review."
           : "No runnable test command is configured. Stop automatic execution and ask a human to configure or choose the repository test command.",
         signals: [
           `changed files: ${input.changedFiles.length}`,
           `minimal tests detected: ${input.minimalTests}`,
           `regression tests detected: ${input.regressionTests}`,
-          `runnable test command: ${testCommand ?? "none"}`,
+          `runnable verification command: ${verificationCommand ?? "none"}`,
           ...input.traceSignals
         ],
-        command: testCommand
+        command: verificationCommand
       })
     );
   }
@@ -381,7 +402,9 @@ function decideNextSteps(input: {
         confidence: hasChangedFiles ? 0.78 : 0.72,
         blocking: false,
         reason: hasChangedFiles
-          ? "Changed files have passed test trace evidence and no blocking context, contract, or impact signals were detected."
+          ? input.verificationRequired
+            ? "Changed files have passed test trace evidence and no blocking context, contract, or impact signals were detected."
+            : "Only documentation changed and no documentation verifier is required."
           : "No stale context, contract failures, changed files, or high-risk impact signals were detected.",
         signals: [
           "freshness: fresh",
@@ -481,14 +504,6 @@ function inspectTraceEvidence(
       ...result.evidence
     ].filter(Boolean)
   };
-}
-
-function sourceOrConfigChanged(context: ContextPackage, changedFiles: string[]): boolean {
-  const indexed = new Map(context.index.files.map((file) => [file.path, file]));
-  return changedFiles.some((path) => {
-    const file = indexed.get(path);
-    return file ? !file.isTest && (file.kind === "source" || file.kind === "config" || file.kind === "lockfile") : false;
-  });
 }
 
 function isGeneratedContextState(file: string): boolean {

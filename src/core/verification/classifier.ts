@@ -90,6 +90,12 @@ export function isTestPath(filePath: string): boolean {
   );
 }
 
+export function requiresSourceVerification(classification: VerificationChangeClassification): boolean {
+  return classification.kinds.some((kind) =>
+    ["source-local", "source-cross-module", "config", "dependency", "build-system", "ci", "security-sensitive"].includes(kind)
+  );
+}
+
 function sourceKind(sourceFiles: string[], context?: ContextPackage): VerificationChangeKind {
   const modules = new Set<string>();
   const indexed = new Map(context?.index.files.map((file) => [file.path, file.moduleName]) ?? []);
