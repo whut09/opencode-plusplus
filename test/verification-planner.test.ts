@@ -180,3 +180,37 @@ test("planner output contains no evidence record or stale-proof claim", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("acceptance fixtures cover npm, workspace, Python, Rust, Go, docs-only, and no-test repositories", () => {
+  const fixtureRoot = path.join(process.cwd(), "test", "fixtures", "verification-planner");
+  const npmPlan = buildVerificationPlan(path.join(fixtureRoot, "npm-project"), { changedFiles: ["src/app.ts"] });
+  assert.deepEqual(
+    npmPlan.commands.map((command) => command.kind),
+    ["lint", "test", "typecheck"]
+  );
+
+  const workspacePlan = buildVerificationPlan(path.join(fixtureRoot, "monorepo"), { changedFiles: ["packages/api/src/index.ts"] });
+  assert.ok(workspacePlan.commands.some((command) => command.packagePath === "packages/api"));
+  assert.equal(workspacePlan.classification.primaryKind, "source-local");
+
+  const pythonPlan = buildVerificationPlan(path.join(fixtureRoot, "python-project"), { changedFiles: ["src/app.py"] });
+  assert.ok(pythonPlan.commands.some((command) => command.command === "python -m pytest"));
+  assert.ok(pythonPlan.commands.some((command) => command.command.startsWith("ruff check .")));
+
+  const rustDiscovery = discoverVerificationCommands(path.join(fixtureRoot, "rust-project"));
+  assert.ok(rustDiscovery.commands.some((command) => command.command === "cargo test"));
+  assert.ok(rustDiscovery.commands.some((command) => command.command === "cargo check"));
+
+  const goDiscovery = discoverVerificationCommands(path.join(fixtureRoot, "go-project"));
+  assert.ok(goDiscovery.commands.some((command) => command.command === "go test ./..."));
+  assert.ok(goDiscovery.commands.some((command) => command.command === "go vet ./..."));
+
+  const docsPlan = buildVerificationPlan(path.join(fixtureRoot, "docs-only"), { changedFiles: ["README.md", "docs/guide.md"] });
+  assert.equal(docsPlan.codeTestRequired, false);
+  assert.equal(docsPlan.verificationRequired, false);
+
+  const noTestPlan = buildVerificationPlan(path.join(fixtureRoot, "no-test"), { changedFiles: ["src/main.py"] });
+  assert.equal(noTestPlan.codeTestRequired, true);
+  assert.equal(noTestPlan.commands.length, 0);
+  assert.equal(noTestPlan.verificationRequired, true);
+});
