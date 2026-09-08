@@ -120,11 +120,11 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
 }
 
 export function transitionForResult(
-  result: Pick<PluginHarnessResult, "decision" | "blocking" | "nextAction" | "tool" | "visualization">
+  result: Pick<PluginHarnessResult, "decision" | "blocking" | "nextAction" | "tool" | "visualization" | "humanReview">
 ): HarnessToastTransition {
   if (result.decision === "human-review" || result.nextAction === "human-review") return "human-review-required";
   if (result.blocking) return "repair-required";
-  if (result.decision === "finalize" || (result.nextAction === "finalize" && !result.blocking) || result.visualization?.evidence.status === "verified") {
+  if (result.decision === "finalize" || (result.nextAction === "finalize" && !result.blocking)) {
     return "verified";
   }
   if (/^(block|repair|repack|rollback|run-tests|error|no-progress)$/i.test(result.decision)) return "repair-required";
@@ -152,6 +152,7 @@ function compactReason(result: PluginHarnessResult, failedChecks: string[], tran
 
 function compactSuggestion(result: PluginHarnessResult, pendingChecks: string[], transition: HarnessToastTransition): string {
   if (transition !== "human-review-required") return pendingChecks[0] ? `Run ${pendingChecks[0]} and evaluate again.` : result.nextAction;
+  if (result.humanReview?.requiredUserAction) return result.humanReview.requiredUserAction;
   if (!pendingChecks.length && !result.requiredCommands.length) return "Configure a test command or manually review the diff.";
   if (pendingChecks[0]) return `Run ${pendingChecks[0]} and call evaluate again.`;
   return "Review the Dashboard and resolve the remaining blocker.";

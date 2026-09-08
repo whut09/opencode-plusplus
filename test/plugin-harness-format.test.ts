@@ -256,6 +256,47 @@ test("a blocking result cannot announce verified from a stale visualization", ()
   assert.match(parsed.humanReadable ?? "", /Repair required/);
 });
 
+test("approved scope resume cannot announce verified from an old visualization", () => {
+  const parsed = JSON.parse(
+    renderEvaluateText({
+      ...base,
+      decision: "ready-for-review",
+      blocking: false,
+      nextAction: "evaluate",
+      visualization: {
+        schemaVersion: "opencode-plusplus.desktop-visualization.v1",
+        view: "harness-progress",
+        currentPhase: "evaluate",
+        stages: [],
+        decisionBasis: [],
+        observed: { selectedFiles: [], rejectedFiles: [], findings: [], missingEvidence: [], requiredCommands: [] },
+        evidence: { workingTreeHash: "hash", currentTreeHashCaptured: true, verifiedFixes: 1, staleEvidence: 0, status: "verified" },
+        interventions: { observed: 0, prevented: 0, requested: 0, repaired: 0, verified: 1, unresolved: 0, "human-review": 0, stale: 0 },
+        decision: { action: "ready-for-review", blocking: false, nextAction: "evaluate" },
+        summary: "old verification"
+      },
+      humanReview: {
+        schemaVersion: "opencode-plusplus.human-review.v1",
+        requestId: "review-resumed",
+        taskId: "task-1",
+        sessionId: "session-1",
+        reasonCode: "BOUNDARY_EXPANSION_REQUIRED",
+        title: "Scope approved",
+        explanation: "The current task boundary was expanded.",
+        requiredUserAction: "Continue with evaluate.",
+        suggestedCommands: [],
+        affectedFiles: ["packages/shared/token.ts"],
+        resumeCondition: "Run evaluate.",
+        status: "resumed",
+        createdAt: "2026-09-08T00:00:00.000Z",
+        updatedAt: "2026-09-08T00:01:00.000Z"
+      }
+    })
+  ) as PluginHarnessResult;
+  assert.equal(parsed.compactStatus?.transition, "verification-started");
+  assert.match(parsed.humanReadable ?? "", /Next\nevaluate/);
+});
+
 test("compact verified output reports only current command evidence", () => {
   const verifiedEvent = {
     interventionId: "verified-1",
