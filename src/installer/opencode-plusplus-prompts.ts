@@ -53,6 +53,7 @@ Workflow:
 10. Do not run opencode-plusplus CLI commands, Start-Sleep, sleep, or polling loops from Desktop. Use the in-process OpenCode++ plugin tools; if no real repository test command exists, stop at human-review.
 11. In the final response, copy the actionSummary and humanReadable facts from the latest OpenCode++ result. Do not replace them with commit lists, model claims, or test output from outside the plugin.
 12. Do not ask the user to reconfirm work that OpenCode++ already recorded. If the result is human-review, state the exact missing evidence or boundary decision and stop; do not describe human-review as a request to repeat the whole task.
+13. If humanReview.reasonCode is BOUNDARY_EXPANSION_REQUIRED, explain the current and requested paths, then call opencode_plusplus_human_review only after the user explicitly approves with confirmed true. The tool updates the boundary revision and resumes the current task; do not call prepare again. For other reason codes, follow requiredUserAction and resumeCondition without bypassing evidence.
 
 Evidence rules:
 - Do not invent files, commands, test results, or output.
