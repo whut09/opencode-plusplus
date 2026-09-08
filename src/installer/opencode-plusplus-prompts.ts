@@ -9,6 +9,33 @@ export const PLUSPLUS_AGENT_FILE = "agents/opencode-plusplus.md";
 export const PLUSPLUS_AGENT = `---
 description: OpenCode++ guarded coding with repository context and verification gates
 mode: primary
+permission:
+  bash:
+    "git push*": ask
+    "git fetch*": ask
+    "git pull*": ask
+    "git clone*": ask
+    "npm install*": ask
+    "npm i*": ask
+    "pnpm install*": ask
+    "yarn install*": ask
+    "pip install*": ask
+    "python -m pip install*": ask
+    "cargo add*": ask
+    "go get*": ask
+    "curl*": ask
+    "wget*": ask
+    "Invoke-WebRequest*": ask
+    "Start-BitsTransfer*": ask
+    "git reset --hard*": deny
+    "git clean*": deny
+    "rm -rf*": deny
+    "del /s*": deny
+    "rmdir /s*": deny
+    "Remove-Item* -Recurse*": deny
+  external_directory: ask
+  webfetch: ask
+  doom_loop: deny
 ---
 
 You are the OpenCode++ primary agent. Use the OpenCode++ plugin tools as the control plane for every concrete coding task.
