@@ -24,7 +24,7 @@ flowchart LR
 
 插件为兼容集成保留 `opencode_plusplus_status`、`opencode_plusplus_enable` 和 `opencode_plusplus_disable` 模型可见工具，但普通 Desktop 入口是 `opencode-plusplus` primary mode。Windows 安装器不再写入命令菜单项，也不再补丁 Desktop 本体。禁用后插件仍加载，只跳过 Guard、证据记录和空闲验证。在 Desktop 外仍可用安装器 EXE 的 `--status`、`--enable` 或 `--disable` 做诊断。
 
-Desktop Harness 工具同时返回结构化 JSON 和人类可读文本。顶层 `actionSummary` 是 OpenCode++ 的记录结果：`observed`、`prevented`、`requested`、`repaired`、`verified`、`unresolved` 和 `human-review` 分别说明插件观察到、阻止、要求、修复、验证或仍未解决的事项。Dashboard 工具和 `.agent-context/sidecar/visualization.json` 展示相同的决策输入，包括选中文件、排除文件、问题、缺失证据、必需命令、working-tree hash 和介入计数。模型生成的任务总结或提交列表不能替代这些记录。
+Desktop Harness 工具同时返回结构化 JSON 和默认的简洁人类可读状态。结构化 `actionSummary` 仍是 OpenCode++ 的记录结果：`observed`、`prevented`、`requested`、`repaired`、`verified`、`unresolved` 和 `human-review` 分别说明插件观察到、阻止、要求、修复、验证或仍未解决的事项。调用 Dashboard 工具查看详细视图；human-review 结果也提供 `dashboard` 字段。Dashboard 和 `.agent-context/sidecar/visualization.json` 展示选中/排除文件、问题、缺失证据、必需命令、working-tree hash 和介入计数。模型生成的任务总结或提交列表不能替代这些记录。详见 [Harness 输出](../reference/harness-output.zh-CN.md)。
 
 ## 证据与 Artifact
 
