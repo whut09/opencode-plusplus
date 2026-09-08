@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { PLUSPLUS_AGENT, PLUSPLUS_AGENT_FILE } from "../src/installer/opencode-plusplus-prompts.js";
+import { OPENCODE_AGENT_PERMISSION_KEYS, VERIFIED_OPENCODE_PLUGIN_API_VERSION } from "../src/integrations/opencode/permission-compatibility.js";
 
 const root = path.resolve(".");
 
@@ -21,6 +22,15 @@ test("installer prompt is a primary mode and contains no command workflow", () =
   assert.match(PLUSPLUS_AGENT, /opencode_plusplus_evaluate/);
   assert.match(PLUSPLUS_AGENT, /opencode_plusplus_next/);
   assert.doesNotMatch(PLUSPLUS_AGENT, /\$ARGUMENTS|Slash Command|\/plusplus-task|\/plusplus-verify/);
+});
+
+test("primary agent uses the verified OpenCode permission schema with a minimal override", () => {
+  assert.equal(VERIFIED_OPENCODE_PLUGIN_API_VERSION, "1.18.18");
+  assert.match(PLUSPLUS_AGENT, /^permission:\n/m);
+  for (const key of ["external_directory", "webfetch", "doom_loop"]) assert.match(PLUSPLUS_AGENT, new RegExp(`^  ${key}:`, "m"));
+  assert.match(PLUSPLUS_AGENT, /^  bash:\n/m);
+  assert.doesNotMatch(PLUSPLUS_AGENT, /^  (read|search|edit):/m);
+  for (const key of OPENCODE_AGENT_PERMISSION_KEYS) assert.ok(["edit", "bash", "webfetch", "doom_loop", "external_directory"].includes(key));
 });
 
 function unescapeCSharp(literal: string): string {
