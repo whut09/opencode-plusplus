@@ -39,6 +39,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 - [Guard 模块](concepts/guard-modules.zh-CN.md)
 - [集成模式](concepts/integration-modes.zh-CN.md)
 - [Loop Engineering](concepts/loop-engineering.zh-CN.md)
+- [Human Review 与人工介入](concepts/human-review.zh-CN.md)
 - [源码导读](developer/source-walkthrough.zh-CN.md)
 - [运行时状态机](developer/runtime-state-machine.zh-CN.md)
 - [Guard Gate Schema](developer/guard-gate-schema.zh-CN.md)

@@ -38,6 +38,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 - [Guard Modules](concepts/guard-modules.md)
 - [Integration Modes](concepts/integration-modes.md)
 - [Loop Engineering](concepts/loop-engineering.md)
+- [Human Review](concepts/human-review.md)
 
 ## Windows and Integrations
 
