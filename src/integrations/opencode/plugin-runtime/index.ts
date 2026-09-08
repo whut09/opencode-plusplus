@@ -10,6 +10,7 @@ import {
   executeDashboardTool,
   executeEvaluateTool,
   executeFeedbackTool,
+  executeHumanReviewTool,
   executeInterventionsTool,
   executeNextTool,
   executePrepareTool,
@@ -230,6 +231,11 @@ export async function createOpenCodePlusPlusSidecar(
           label: { type: "string" }
         },
         (args) => executeFeedbackTool(context.directory, args)
+      ),
+      opencode_plusplus_human_review: desktopHarnessTool(
+        "Resolve a persisted OpenCode++ human review request. Approve only a boundary expansion after inspecting the requested files; this updates the current task boundary and resumes without prepare.",
+        { taskId: { type: "string" }, sessionId: { type: "string" }, requestId: { type: "string" }, action: { type: "string" }, confirmed: { type: "boolean" } },
+        (args) => executeHumanReviewTool(context.directory, args, context, recorder)
       ),
       opencode_plusplus_evaluate: desktopHarnessTool(
         "Call after edits or before claiming done. Returns a compact OpenCode++ status plus structured actionSummary, blocking findings, decision, and exact missing evidence.",
