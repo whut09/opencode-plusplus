@@ -10,6 +10,7 @@ import { buildTestSelection, type TestSelectionReport } from "../../outputs/test
 import { renderTaskVerify } from "../../outputs/task-harness.js";
 import type { OpenCodeSidecarGuardStackSummary } from "./sidecar.js";
 import type { ContextPackage } from "../../core/types.js";
+import { buildVerificationPlan } from "../../core/verification/planner.js";
 
 export async function runSidecarIncrementalVerifier(
   root: string,
@@ -22,6 +23,7 @@ export async function runSidecarIncrementalVerifier(
     const regression = buildRegressionReport(context, { base: input.base, changedFiles: input.changedFiles });
     const impact = buildChangeImpactReport(context, { base: input.base });
     const tests = buildTestSelection(context, { diff: true, base: input.base });
+    const verification = buildVerificationPlan(context, { changedFiles: input.changedFiles });
     const policy = buildPolicyReport(context, { base: input.base, failOn: "required" });
     writeGuardStackArtifacts(root, {
       policyMarkdown: renderPolicyReport(policy),
@@ -29,7 +31,7 @@ export async function runSidecarIncrementalVerifier(
       hallucinationMarkdown: renderHallucinationReport(hallucination),
       regressionMarkdown: renderRegressionReport(regression)
     });
-    return summarizeGuardStack({ base: input.base, contracts, hallucination, regression, impact, tests, policy });
+    return summarizeGuardStack({ base: input.base, contracts, hallucination, regression, impact, tests, verification, policy });
   } catch (error) {
     return { ran: false, passed: false, base: input.base, artifacts: {}, error: error instanceof Error ? error.message : String(error) };
   }
@@ -63,6 +65,7 @@ function summarizeGuardStack(input: {
   regression: RegressionGuardReport;
   impact: ChangeImpactReport;
   tests: TestSelectionReport;
+  verification: ReturnType<typeof buildVerificationPlan>;
   policy: PolicyEngineReport;
 }): OpenCodeSidecarGuardStackSummary {
   return {
@@ -79,6 +82,12 @@ function summarizeGuardStack(input: {
       minimalCommands: input.tests.minimalCommands.length,
       recommendedCommands: input.tests.recommendedCommands.length,
       fullConfidenceCommands: input.tests.fullConfidenceCommands.length
+    },
+    verification: {
+      classification: input.verification.classification.primaryKind,
+      commands: input.verification.commands.length,
+      codeTestRequired: input.verification.codeTestRequired,
+      verificationRequired: input.verification.verificationRequired
     },
     policy: {
       passed: input.policy.passed,

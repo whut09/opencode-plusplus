@@ -16,6 +16,7 @@ interface GuardStack {
   regression?: { matches: number; missingRequiredTestEvidence: number };
   impact?: { risk: string; changedFiles: number; relatedTests: number };
   tests?: { minimalCommands: number; recommendedCommands: number; fullConfidenceCommands: number };
+  verification?: { classification: string; commands: number; codeTestRequired: boolean; verificationRequired: boolean };
   policy?: { passed: boolean; forbidden: number; requiredMissing: number; risks: number };
 }
 
@@ -244,6 +245,7 @@ export function formatGuardStackLines(summary: GuardStack): string[] {
     `- regression: ${summary.regression?.matches ?? 0} match(es), ${summary.regression?.missingRequiredTestEvidence ?? 0} missing evidence`,
     `- impact: ${summary.impact?.risk ?? "unknown"} (${summary.impact?.changedFiles ?? 0} changed file(s), ${summary.impact?.relatedTests ?? 0} related test(s))`,
     `- tests: ${summary.tests?.minimalCommands ?? 0} minimal, ${summary.tests?.recommendedCommands ?? 0} recommended, ${summary.tests?.fullConfidenceCommands ?? 0} full-confidence command(s)`,
+    `- smart verification: ${summary.verification?.classification ?? "unknown"} (${summary.verification?.commands ?? 0} recommended, code tests ${summary.verification?.codeTestRequired ? "required" : "not required"}, verification ${summary.verification?.verificationRequired ? "required" : "not required"})`,
     `- policy: ${summary.policy?.passed ? "passed" : "failed"} (${summary.policy?.forbidden ?? 0} forbidden, ${summary.policy?.requiredMissing ?? 0} required missing, ${summary.policy?.risks ?? 0} risk(s))`
   ];
 }

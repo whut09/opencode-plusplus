@@ -72,6 +72,12 @@ export interface OpenCodeSidecarGuardStackSummary {
     recommendedCommands: number;
     fullConfidenceCommands: number;
   };
+  verification?: {
+    classification: string;
+    commands: number;
+    codeTestRequired: boolean;
+    verificationRequired: boolean;
+  };
   policy?: {
     passed: boolean;
     forbidden: number;
