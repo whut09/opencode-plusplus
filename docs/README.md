@@ -21,7 +21,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 | Understand the global event-driven runtime          | [OpenCode Global Sidecar](integrations/opencode-sidecar.md)                           |
 | Understand context, guards, evidence, and loops     | [Architecture](concepts/architecture.md)                                              |
 | Understand Desktop and developer entry boundaries   | [Integration Modes](concepts/integration-modes.md)                                    |
-| Understand compact status and detailed Dashboard    | [Harness Output](reference/harness-output.md)                                          |
+| Understand compact status and detailed Dashboard    | [Harness Output](reference/harness-output.md)                                         |
 | Operate the CLI (developer surface)                 | [CLI Reference](reference/cli-reference.md)                                           |
 | Configure evidence trust                            | [Configuration](reference/config.md)                                                  |
 | Choose minimal verification commands                | [Smart Verification Planner](reference/verification-planner.md)                       |

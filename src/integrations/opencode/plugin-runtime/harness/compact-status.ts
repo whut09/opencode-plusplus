@@ -24,9 +24,7 @@ export function buildPluginCompactStatus(result: PluginHarnessResult): PluginCom
   const evidence = collectEvidence(result.interventions);
   const selectedFiles = unique(result.interventions?.selectedFiles ?? result.mustInspect);
   const changedFiles = result.tool === "evaluate" || result.tool === "next" || result.tool === "dashboard" ? selectedFiles : [];
-  const pendingChecks = unique(
-    result.requiredCommands.filter((command) => !evidence.passed.includes(command) && !evidence.failed.includes(command))
-  );
+  const pendingChecks = unique(result.requiredCommands.filter((command) => !evidence.passed.includes(command) && !evidence.failed.includes(command)));
   const reason = compactReason(result, evidence.failed, transition);
   const next = compactNext(result, selectedFiles, pendingChecks);
   const suggestion = compactSuggestion(result, pendingChecks, transition);
@@ -94,7 +92,9 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
   return lines.join("\n");
 }
 
-export function transitionForResult(result: Pick<PluginHarnessResult, "decision" | "blocking" | "nextAction" | "tool" | "visualization">): HarnessToastTransition {
+export function transitionForResult(
+  result: Pick<PluginHarnessResult, "decision" | "blocking" | "nextAction" | "tool" | "visualization">
+): HarnessToastTransition {
   if (result.decision === "human-review" || result.nextAction === "human-review") return "human-review-required";
   if (result.decision === "finalize" || (result.nextAction === "finalize" && !result.blocking) || result.visualization?.evidence.status === "verified") {
     return "verified";

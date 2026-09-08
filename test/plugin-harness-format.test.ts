@@ -165,14 +165,7 @@ test("Desktop prints OpenCode++ Harness status to the app log and status toast",
   assert.equal(notifyPluginHarnessStatus(context, base, recorder), "log");
   assert.equal(toasts.length, 1);
 
-  assert.equal(
-    notifyPluginHarnessStatus(
-      context,
-      { ...base, decision: "finalize", blocking: false, nextAction: "finalize" },
-      recorder
-    ),
-    "toast"
-  );
+  assert.equal(notifyPluginHarnessStatus(context, { ...base, decision: "finalize", blocking: false, nextAction: "finalize" }, recorder), "toast");
   assert.match(toasts[1] ?? "", /verified/);
 
   toasts.length = 0;
@@ -181,11 +174,7 @@ test("Desktop prints OpenCode++ Harness status to the app log and status toast",
 
   const verificationContext = { ...context, directory: "C:/verification-started" };
   assert.equal(
-    notifyPluginHarnessStatus(
-      verificationContext,
-      { ...base, decision: "ready-for-review", blocking: false, nextAction: "evaluate" },
-      recorder
-    ),
+    notifyPluginHarnessStatus(verificationContext, { ...base, decision: "ready-for-review", blocking: false, nextAction: "evaluate" }, recorder),
     "toast"
   );
   assert.match(toasts[0] ?? "", /verification started/);
