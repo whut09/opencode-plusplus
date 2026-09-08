@@ -1,5 +1,6 @@
 import path from "node:path";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
+import { renderPluginCompactStatus, type PluginHarnessDisplayMode } from "./compact-status.js";
 import {
   emptyPluginInterventions,
   type PluginActionSummary,
@@ -108,7 +109,11 @@ export function createPluginHarnessError(
   });
 }
 
-export function renderPluginHarnessResult(result: PluginHarnessResult): string {
+export interface RenderPluginHarnessResultOptions {
+  displayMode?: PluginHarnessDisplayMode;
+}
+
+export function renderPluginHarnessResult(result: PluginHarnessResult, options: RenderPluginHarnessResultOptions = {}): string {
   const visualization =
     result.visualization ??
     buildPluginHarnessVisualization({
@@ -132,10 +137,18 @@ export function renderPluginHarnessResult(result: PluginHarnessResult): string {
     actionSummary
   };
   persistPluginHarnessVisualization(withSummary.repository, visualization);
-  return `${JSON.stringify({ ...withSummary, humanReadable: humanReadableSummary(withSummary) }, null, 2)}\n`;
+  const displayMode = options.displayMode ?? (withSummary.tool === "dashboard" ? "detailed" : "compact");
+  const dashboard = renderPluginHarnessVisualization(visualization);
+  const humanReadable = displayMode === "detailed" ? detailedHumanReadableSummary(withSummary) : renderPluginCompactStatus(withSummary);
+  const payload = {
+    ...withSummary,
+    humanReadable,
+    ...(withSummary.tool === "dashboard" || withSummary.decision === "human-review" ? { dashboard } : {})
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
 }
 
-function humanReadableSummary(result: PluginHarnessResult): string {
+function detailedHumanReadableSummary(result: PluginHarnessResult): string {
   const actionSummary = result.actionSummary ?? buildPluginActionSummary(result);
   const lines = [
     "OpenCode++ action summary / OpenCode++ 执行总结",

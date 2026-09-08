@@ -1,4 +1,4 @@
-import { createPluginHarnessError, renderPluginHarnessResult } from "./protocol.js";
+import { createPluginHarnessError, renderPluginHarnessResult, type RenderPluginHarnessResultOptions } from "./protocol.js";
 import type { PluginHarnessResult } from "./types.js";
 
 export function renderPrepareText(result: PluginHarnessResult): string {
@@ -17,8 +17,8 @@ export function renderNextText(result: PluginHarnessResult): string {
   return renderPluginResult(result);
 }
 
-export function renderPluginResult(result: PluginHarnessResult): string {
-  return renderPluginHarnessResult(result);
+export function renderPluginResult(result: PluginHarnessResult, options?: RenderPluginHarnessResultOptions): string {
+  return renderPluginHarnessResult(result, options);
 }
 
 export function renderHarnessError(tool: string, message: string, root = "."): string {
