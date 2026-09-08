@@ -294,7 +294,8 @@ test("approved scope resume cannot announce verified from an old visualization",
     })
   ) as PluginHarnessResult;
   assert.equal(parsed.compactStatus?.transition, "verification-started");
-  assert.match(parsed.humanReadable ?? "", /Next\nevaluate/);
+  assert.match(parsed.humanReadable ?? "", /Next\nRun npm run test and evaluate again/);
+  assert.doesNotMatch(parsed.humanReadable ?? "", /Verified/);
 });
 
 test("compact verified output reports only current command evidence", () => {
