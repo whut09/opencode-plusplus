@@ -49,6 +49,12 @@ agent 文件是标准 OpenCode `mode: primary` agent。OpenCode 会从全局 `ag
 
 真正读文件、改代码和执行命令的仍是当前 OpenCode 模型。OpenCode++ 提供 context、规则、证据和决策工具；Desktop 插件不会启动第二个模型，也不会调用自己的 CLI。
 
+## Permission 与 Guard 分层
+
+已验证的 OpenCode Desktop 基线是 `@opencode-ai/plugin` `1.18.18`。安装后的 OpenCode++ primary agent 只使用该版本支持的 permission 键：`edit`、`bash`、`webfetch`、`doom_loop` 和 `external_directory`。它不添加不受支持的 `read` 或 `search` 字段，也不覆盖普通 `edit` 行为。
+
+OpenCode 负责用户授权，OpenCode++ 负责任务和仓库语义。命令结果分为 `allowed`、`approval-required` 和 `policy-blocked`：包操作、网络操作和仓库外路径交给 OpenCode 原生权限弹窗；破坏性命令、受保护路径、未知项目命令和 evidence 篡改由插件确定性阻断。即使 OpenCode 开启自动批准，也不能绕过 `policy-blocked`。详见 [Permission 与 Guard 边界](../reference/permission-boundaries.zh-CN.md)。
+
 ### 切换模式与卡死归因
 
 模式选择器选择的是**下一条消息**使用的 agent，不会取消已经运行的回复。如果当前回复由 OpenCode++ 启动，在回复仍运行时把选择器改成 Build，旧回复仍可能继续打印 OpenCode++ 结果。此时应点击方形的**停止**按钮，保持 Build 已选中，再发送一条新消息。从新的 Build 轮次开始，OpenCode++ 的命令 Guard、证据 hook、compacting context、idle verification 和 Harness 工具都会对该轮保持关闭。对话历史仍包含旧的 OpenCode++ 文本；如果需要完全干净的 Build 记录，还应新建一个 OpenCode 会话。
