@@ -64,10 +64,13 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
     if (status.selectedFiles.length) lines.push("", "Selected", `${status.selectedFiles.length} file${status.selectedFiles.length === 1 ? "" : "s"}`);
   }
 
-  if (status.passedChecks.length || status.failedChecks.length || status.pendingChecks.length) {
+  if (status.passedChecks.length || status.failedChecks.length) {
     lines.push("", "Checks");
     lines.push(...status.passedChecks.map((command) => `✓ ${command}`));
     lines.push(...status.failedChecks.map((command) => `✗ ${command}`));
+  }
+  if (status.pendingChecks.length) {
+    lines.push("", "Suggested checks");
     lines.push(...status.pendingChecks.map((command) => `• ${command}`));
   }
 
@@ -79,6 +82,7 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
   if (status.transition === "verified") {
     lines.push("", "Status", "Ready to finalize");
   } else if (status.transition === "repair-required") {
+    if (!status.failedChecks.length && status.reason) lines.push("", "Reason", status.reason);
     lines.push("", "Next", status.next);
   } else if (status.transition === "human-review-required") {
     lines.push("", "Need you", status.reason, "", "Suggested", status.suggestion);
@@ -136,7 +140,7 @@ function compactNext(result: PluginHarnessResult, selectedFiles: string[], pendi
 function compactActionSummary(result: PluginHarnessResult): Array<{ status: string; items: string[] }> {
   const summary = result.actionSummary;
   if (!summary) return [];
-  return (["observed", "prevented", "requested", "repaired", "verified", "unresolved"] as const)
+  return (["prevented", "requested", "repaired", "verified", "unresolved"] as const)
     .map((status) => ({ status, items: unique(summary[status]) }))
     .filter((item) => item.items.length);
 }

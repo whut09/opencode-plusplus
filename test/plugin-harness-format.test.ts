@@ -189,6 +189,111 @@ test("human review keeps compact status and exposes a separate dashboard", () =>
   assert.match(parsed.dashboard ?? "", /OpenCode\+\+ Harness Dashboard/);
 });
 
+test("compact verified output reports only current command evidence", () => {
+  const verifiedEvent = {
+    interventionId: "verified-1",
+    eventId: "event-verified-1",
+    status: "verified" as const,
+    phase: "evaluate",
+    category: "evidence",
+    problem: "test evidence is current",
+    targetFiles: ["src/auth/session.ts", "test/auth/session.test.ts", "src/auth/token.ts"],
+    action: "run verification",
+    evidenceRefs: ["trace-1"],
+    resolutionEvidence: [
+      {
+        kind: "command" as const,
+        ref: "trace-1",
+        workingTreeHash: "hash",
+        currentWorkingTree: true,
+        valid: true,
+        details: ["npm test"]
+      }
+    ],
+    confidence: 1,
+    source: "policy",
+    timestamp: "2026-01-01T00:00:00.000Z"
+  };
+  const parsed = JSON.parse(
+    renderEvaluateText({
+      ...base,
+      decision: "finalize",
+      blocking: false,
+      nextAction: "finalize",
+      requiredCommands: ["npm test"],
+      interventions: {
+        ledgerPath: "ledger.jsonl",
+        eventCount: 1,
+        selectedFiles: verifiedEvent.targetFiles,
+        excludedFiles: [],
+        interventions: [verifiedEvent],
+        problems: [],
+        actions: [verifiedEvent.action],
+        verifiedFixes: [verifiedEvent],
+        remainingProblems: [],
+        humanReview: []
+      }
+    })
+  ) as PluginHarnessResult;
+  assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ✓ Verified/);
+  assert.match(parsed.humanReadable ?? "", /Changed\n3 files/);
+  assert.match(parsed.humanReadable ?? "", /Checks\n✓ npm test/);
+  assert.match(parsed.humanReadable ?? "", /Ready to finalize/);
+  assert.doesNotMatch(parsed.humanReadable ?? "", /Suggested checks/);
+  assert.ok(parsed.actionSummary?.observed.length, "structured observations remain available");
+});
+
+test("compact repair output distinguishes failed checks from suggestions", () => {
+  const failedEvent = {
+    interventionId: "failed-1",
+    eventId: "event-failed-1",
+    status: "unresolved" as const,
+    phase: "evaluate",
+    category: "evidence",
+    problem: "test command failed",
+    targetFiles: ["test/auth/session.test.ts"],
+    action: "repair test",
+    evidenceRefs: ["trace-2"],
+    resolutionEvidence: [
+      {
+        kind: "command" as const,
+        ref: "trace-2",
+        workingTreeHash: "hash",
+        currentWorkingTree: true,
+        valid: false,
+        details: ["npm test"]
+      }
+    ],
+    confidence: 1,
+    source: "policy",
+    timestamp: "2026-01-01T00:00:00.000Z"
+  };
+  const parsed = JSON.parse(
+    renderEvaluateText({
+      ...base,
+      decision: "repair",
+      nextAction: "repair",
+      requiredCommands: ["npm test"],
+      interventions: {
+        ledgerPath: "ledger.jsonl",
+        eventCount: 1,
+        selectedFiles: failedEvent.targetFiles,
+        excludedFiles: [],
+        interventions: [failedEvent],
+        problems: [failedEvent.problem],
+        actions: [failedEvent.action],
+        verifiedFixes: [],
+        remainingProblems: [failedEvent],
+        humanReview: []
+      }
+    })
+  ) as PluginHarnessResult;
+  assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ✗ Repair required/);
+  assert.match(parsed.humanReadable ?? "", /Checks\n✗ npm test/);
+  assert.match(parsed.humanReadable ?? "", /Next\nFix test\/auth\/session\.test\.ts/);
+  assert.doesNotMatch(parsed.humanReadable ?? "", /Suggested checks/);
+});
+
 test("structured harness errors never become unparseable text", () => {
   const parsed = JSON.parse(renderHarnessError("evaluate", "missing task")) as PluginHarnessResult;
   assert.equal(parsed.ok, false);
