@@ -17,6 +17,15 @@ export interface PluginCompactStatus {
   suggestion: string;
   next: string;
   actionSummary: Array<{ status: string; items: string[] }>;
+  humanReview?: {
+    reasonCode: string;
+    title: string;
+    explanation: string;
+    requiredUserAction: string;
+    suggestedCommands: string[];
+    affectedFiles: string[];
+    resumeCondition: string;
+  };
 }
 
 export function buildPluginCompactStatus(result: PluginHarnessResult): PluginCompactStatus {
@@ -48,7 +57,8 @@ export function buildPluginCompactStatus(result: PluginHarnessResult): PluginCom
     reason,
     suggestion,
     next,
-    actionSummary: compactActionSummary(result)
+    actionSummary: compactActionSummary(result),
+    ...(result.humanReview ? { humanReview: result.humanReview } : {})
   };
 }
 
@@ -83,7 +93,24 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
     if (!status.failedChecks.length && status.reason) lines.push("", "Reason", status.reason);
     lines.push("", "Next", status.next);
   } else if (status.transition === "human-review-required") {
-    lines.push("", "Need you", status.reason, "", "Suggested", status.suggestion);
+    if (status.humanReview) {
+      lines.push(
+        "",
+        "Need you",
+        status.humanReview.title,
+        "",
+        "Why",
+        status.humanReview.explanation,
+        "",
+        "Do",
+        status.humanReview.requiredUserAction
+      );
+      if (status.humanReview.suggestedCommands.length) lines.push("", "Suggested", ...status.humanReview.suggestedCommands.map((command) => `• ${command}`));
+      if (status.humanReview.affectedFiles.length) lines.push("", "Affected", ...status.humanReview.affectedFiles.map((file) => `• ${file}`));
+      lines.push("", "Continue", status.humanReview.resumeCondition);
+    } else {
+      lines.push("", "Need you", status.reason, "", "Suggested", status.suggestion);
+    }
   } else {
     lines.push("", "Status", "Verification started");
     if (status.next) lines.push("", "Next", status.next);

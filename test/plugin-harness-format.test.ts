@@ -196,12 +196,31 @@ test("human review keeps compact status and exposes a separate dashboard", () =>
       decision: "human-review",
       nextAction: "human-review",
       findings: ["No executable verification command was found for source changes."],
-      requiredCommands: []
+      requiredCommands: [],
+      humanReview: {
+        schemaVersion: "opencode-plusplus.human-review.v1",
+        revision: 1,
+        requestId: "review-1",
+        taskId: "task-1",
+        sessionId: "session-1",
+        reasonCode: "NO_EXECUTABLE_TEST",
+        title: "OpenCode++ needs an executable verification path.",
+        explanation: "No runnable test command is configured.",
+        requiredUserAction: "Configure a test command or inspect the diff.",
+        suggestedCommands: [],
+        affectedFiles: ["src/auth/session.ts"],
+        resumeCondition: "A current command result lets OpenCode++ continue.",
+        status: "pending",
+        createdAt: "2026-09-08T00:00:00.000Z",
+        updatedAt: "2026-09-08T00:00:00.000Z"
+      }
     })
   ) as PluginHarnessResult;
   assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ⚠ Human review/);
   assert.match(parsed.humanReadable ?? "", /Need you/);
-  assert.match(parsed.humanReadable ?? "", /Suggested/);
+  assert.match(parsed.humanReadable ?? "", /Why\nNo runnable test command/);
+  assert.match(parsed.humanReadable ?? "", /Do\nConfigure a test command/);
+  assert.match(parsed.humanReadable ?? "", /Continue\nA current command result/);
   assert.match(parsed.dashboard ?? "", /OpenCode\+\+ Harness Dashboard/);
 });
 

@@ -229,7 +229,7 @@ function reviewExplanation(input: {
   if (input.reasonCode === "BOUNDARY_EXPANSION_REQUIRED") {
     return `The current task boundary does not include ${input.boundaryAssessment.outsideAllowed.join(", ")}. The requested files are outside the prepared edit surface, but they are not classified as protected paths.`;
   }
-  if (input.reasonCode === "NO_EXECUTABLE_TEST") return "Source or configuration changes require test evidence, but no executable repository test command is available for this task.";
+  if (input.reasonCode === "NO_EXECUTABLE_TEST") return "No runnable test command is configured; source or configuration changes require current executable test evidence for this task.";
   if (input.reasonCode === "AMBIGUOUS_REPOSITORY_STATE") return `The OpenCode++ guard stack could not establish a reliable repository state: ${input.guardError ?? "guard evaluation failed"}.`;
   return input.findings[0] ?? `The current decision is ${input.decision}, and OpenCode++ cannot prove a safe automatic continuation.`;
 }
