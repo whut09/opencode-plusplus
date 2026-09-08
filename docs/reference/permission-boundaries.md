@@ -4,9 +4,9 @@
 
 OpenCode++ deliberately separates user authorization from repository semantics:
 
-| Layer | Owner | Meaning |
-| --- | --- | --- |
-| OpenCode Permission | OpenCode Desktop | Whether the user allows an operation. |
+| Layer                   | Owner             | Meaning                                                              |
+| ----------------------- | ----------------- | -------------------------------------------------------------------- |
+| OpenCode Permission     | OpenCode Desktop  | Whether the user allows an operation.                                |
 | OpenCode++ Policy Guard | OpenCode++ plugin | Whether the operation is valid for the task and repository boundary. |
 
 ## Compatibility Baseline

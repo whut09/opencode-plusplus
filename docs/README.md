@@ -12,22 +12,22 @@ The product has one normal user path: OpenCode Desktop plus the installed in-pro
 
 Read these in order if OpenCode++ is new to you: install the Windows plugin, understand the product boundary, then inspect the architecture and the visible Desktop results.
 
-| Goal                                               | Document                                                                              |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Install, upgrade, disable, or uninstall on Windows | [OpenCode Desktop on Windows](integrations/opencode-desktop.md)                       |
-| Understand the plugin and its hard boundaries      | [Windows plugin architecture and boundaries](concepts/windows-plugin-architecture.md) |
-| Understand the product boundary (CLI/MCP internal) | [Product Boundary](developer/product-boundary.md)                                     |
-| Start in five minutes                              | [Getting Started](getting-started.md)                                                 |
-| Understand the global event-driven runtime         | [OpenCode Global Sidecar](integrations/opencode-sidecar.md)                           |
-| Understand context, guards, evidence, and loops    | [Architecture](concepts/architecture.md)                                              |
-| Understand Desktop and developer entry boundaries  | [Integration Modes](concepts/integration-modes.md)                                    |
-| Operate the CLI (developer surface)                | [CLI Reference](reference/cli-reference.md)                                           |
-| Configure evidence trust                           | [Configuration](reference/config.md)                                                  |
-| Choose minimal verification commands               | [Smart Verification Planner](reference/verification-planner.md)                       |
-| Understand native permission versus semantic guards | [Permission And Guard Boundaries](reference/permission-boundaries.md)                  |
-| Rate Context quality without sending source code   | [Context Feedback](reference/context-feedback.md)                                     |
-| Build and publish releases                         | [Release Checklist](release.md)                                                       |
-| Contribute or customize the Harness                | [Contribution Guide](../CONTRIBUTING.md)                                              |
+| Goal                                                | Document                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Install, upgrade, disable, or uninstall on Windows  | [OpenCode Desktop on Windows](integrations/opencode-desktop.md)                       |
+| Understand the plugin and its hard boundaries       | [Windows plugin architecture and boundaries](concepts/windows-plugin-architecture.md) |
+| Understand the product boundary (CLI/MCP internal)  | [Product Boundary](developer/product-boundary.md)                                     |
+| Start in five minutes                               | [Getting Started](getting-started.md)                                                 |
+| Understand the global event-driven runtime          | [OpenCode Global Sidecar](integrations/opencode-sidecar.md)                           |
+| Understand context, guards, evidence, and loops     | [Architecture](concepts/architecture.md)                                              |
+| Understand Desktop and developer entry boundaries   | [Integration Modes](concepts/integration-modes.md)                                    |
+| Operate the CLI (developer surface)                 | [CLI Reference](reference/cli-reference.md)                                           |
+| Configure evidence trust                            | [Configuration](reference/config.md)                                                  |
+| Choose minimal verification commands                | [Smart Verification Planner](reference/verification-planner.md)                       |
+| Understand native permission versus semantic guards | [Permission And Guard Boundaries](reference/permission-boundaries.md)                 |
+| Rate Context quality without sending source code    | [Context Feedback](reference/context-feedback.md)                                     |
+| Build and publish releases                          | [Release Checklist](release.md)                                                       |
+| Contribute or customize the Harness                 | [Contribution Guide](../CONTRIBUTING.md)                                              |
 
 ## Concepts
 

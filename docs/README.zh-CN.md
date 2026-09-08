@@ -24,7 +24,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 | 使用 CLI（开发者面）                  | [CLI 参考](reference/cli-reference.zh-CN.md)                            |
 | 配置证据可信等级                      | [配置参考](reference/config.zh-CN.md)                                   |
 | 选择最小验证命令                      | [Smart Verification Planner](reference/verification-planner.zh-CN.md)   |
-| 理解原生权限与语义 Guard 的分层       | [Permission 与 Guard 边界](reference/permission-boundaries.zh-CN.md)  |
+| 理解原生权限与语义 Guard 的分层       | [Permission 与 Guard 边界](reference/permission-boundaries.zh-CN.md)    |
 | 在不发送源码的前提下评价 Context 质量 | [Context Feedback](reference/context-feedback.zh-CN.md)                 |
 | 构建和发布                            | [发布检查](release.zh-CN.md)                                            |
 | 贡献或定制 Harness                    | [贡献指南](../CONTRIBUTING.zh-CN.md)                                    |

@@ -4,10 +4,10 @@
 
 OpenCode++ 有意把用户授权和工程语义分开：
 
-| 层 | 负责方 | 含义 |
-| --- | --- | --- |
-| OpenCode Permission | OpenCode Desktop | 用户是否允许执行操作。 |
-| OpenCode++ Policy Guard | OpenCode++ 插件 | 操作是否符合当前任务和仓库边界。 |
+| 层                      | 负责方           | 含义                             |
+| ----------------------- | ---------------- | -------------------------------- |
+| OpenCode Permission     | OpenCode Desktop | 用户是否允许执行操作。           |
+| OpenCode++ Policy Guard | OpenCode++ 插件  | 操作是否符合当前任务和仓库边界。 |
 
 ## 兼容基线
 

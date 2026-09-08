@@ -3,10 +3,10 @@ import test from "node:test";
 import { classifyCommandFinding, summarizeCommandFindings } from "../src/integrations/opencode/command-permission.js";
 
 test("command finding classification keeps ordinary warnings allowed", () => {
-  assert.deepEqual(
-    classifyCommandFinding({ kind: "protected_path", severity: "warning", rule: "dependency-build-output-uncertain" }),
-    { disposition: "allowed", authority: "none" }
-  );
+  assert.deepEqual(classifyCommandFinding({ kind: "protected_path", severity: "warning", rule: "dependency-build-output-uncertain" }), {
+    disposition: "allowed",
+    authority: "none"
+  });
 });
 
 test("command finding classification sends consent decisions to OpenCode", () => {

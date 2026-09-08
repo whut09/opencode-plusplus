@@ -37,10 +37,7 @@ export function renderCommandCheck(result: {
   const findingLines = result.findings.length
     ? result.findings.flatMap((finding) => {
         const label = finding.disposition === "approval-required" ? "APPROVAL REQUIRED" : finding.severity === "warning" ? "WARNING" : "BLOCKED";
-        const lines = [
-          `${label}: ${finding.message}`,
-          `Evidence: ${(finding.evidence ?? []).join(" | ") || "n/a"}`
-        ];
+        const lines = [`${label}: ${finding.message}`, `Evidence: ${(finding.evidence ?? []).join(" | ") || "n/a"}`];
         if (finding.doInstead) lines.push(`Do instead: ${finding.doInstead}`);
         return lines;
       })
