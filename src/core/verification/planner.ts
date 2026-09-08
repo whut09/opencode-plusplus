@@ -48,7 +48,7 @@ function selectCommands(
   options: VerificationPlannerOptions
 ): VerificationCommand[] {
   if (classification.docsOnly) {
-    return options.docsBuildRequired ? selectDocsCommands(discovered) : selectDocsCommands(discovered);
+    return selectDocsCommands(discovered);
   }
 
   const selected: VerificationCommand[] = [];

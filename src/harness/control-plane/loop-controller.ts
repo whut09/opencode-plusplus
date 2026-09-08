@@ -380,7 +380,9 @@ function decideNextSteps(input: {
           ? input.codeTestRequired
             ? "The loop cannot close until an actual test command has been run."
             : "The docs-only change has a repository documentation verifier that should be run before review."
-          : "No runnable test command is configured. Stop automatic execution and ask a human to configure or choose the repository test command.",
+          : input.codeTestRequired
+            ? "No runnable test command is configured. Stop automatic execution and ask a human to configure or choose the repository test command."
+            : "A docs-only verification was required by repository policy, but no documentation command was discovered. Ask a human to configure the docs verifier.",
         signals: [
           `changed files: ${input.changedFiles.length}`,
           `minimal tests detected: ${input.minimalTests}`,
