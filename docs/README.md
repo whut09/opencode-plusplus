@@ -23,6 +23,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 | Understand Desktop and developer entry boundaries  | [Integration Modes](concepts/integration-modes.md)                                    |
 | Operate the CLI (developer surface)                | [CLI Reference](reference/cli-reference.md)                                           |
 | Configure evidence trust                           | [Configuration](reference/config.md)                                                  |
+| Choose minimal verification commands               | [Smart Verification Planner](reference/verification-planner.md)                       |
 | Rate Context quality without sending source code   | [Context Feedback](reference/context-feedback.md)                                     |
 | Build and publish releases                         | [Release Checklist](release.md)                                                       |
 | Contribute or customize the Harness                | [Contribution Guide](../CONTRIBUTING.md)                                              |
@@ -66,6 +67,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 - [Generated Files](reference/generated-files.md)
 - [Executor Adapters](reference/executor-adapters.md)
 - [Retrieval Providers](reference/retrieval.md)
+- [Smart Verification Planner](reference/verification-planner.md)
 - [Context Feedback](reference/context-feedback.md)
 - [Release Checklist](release.md)
 - [Roadmap](roadmap.md)

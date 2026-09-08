@@ -41,13 +41,13 @@
 
 契约测试位于 `test/harness-ux-baseline.test.ts`。下表是当前预期形状；后续 UX 工作可以减少这些数字，但必须有意识地更新比较基线。
 
-| 场景 | 流程                                                                                          | Harness 调用 | 模型可见步骤 | 重复 evaluate | 用户批准 | 人工审核 | 验证命令 | 当前最终 decision |
-| ---- | --------------------------------------------------------------------------------------------- | -----------: | -----------: | ------------: | -------: | -------: | -------: | ----------------- |
-| A    | prepare -> retrieve -> edit -> test -> contract check -> evaluate -> next -> dashboard        |            5 |            5 |             0 |        0 |        0 |        2 | `run-tests`       |
-| B    | 测试失败 -> evaluate/next -> 修复 -> 测试通过 -> contract check -> evaluate/next -> dashboard |            7 |            7 |             0 |        0 |        0 |        3 | `run-tests`       |
-| C    | 只改文档 -> evaluate -> next -> dashboard                                                     |            5 |            5 |             0 |        0 |        0 |        0 | `run-tests`       |
-| D    | 修改源码但没有可执行验证命令 -> evaluate -> next -> dashboard                                 |            5 |            5 |             0 |        0 |   至少 1 |        0 | `human-review`    |
-| E    | 选择 Build；探测 hook 和工具但保持 inactive                                                   |            0 |            0 |             0 |        0 |        0 |        0 | 无                |
+| 场景 | 流程                                                                                          | Harness 调用 | 模型可见步骤 | 重复 evaluate | 用户批准 | 人工审核 | 验证命令 | 当前最终 decision  |
+| ---- | --------------------------------------------------------------------------------------------- | -----------: | -----------: | ------------: | -------: | -------: | -------: | ------------------ |
+| A    | prepare -> retrieve -> edit -> test -> contract check -> evaluate -> next -> dashboard        |            5 |            5 |             0 |        0 |        0 |        2 | `run-tests`        |
+| B    | 测试失败 -> evaluate/next -> 修复 -> 测试通过 -> contract check -> evaluate/next -> dashboard |            7 |            7 |             0 |        0 |        0 |        3 | `run-tests`        |
+| C    | 只改文档 -> evaluate -> next -> dashboard                                                     |            5 |            5 |             0 |        0 |        0 |        0 | `ready-for-review` |
+| D    | 修改源码但没有可执行验证命令 -> evaluate -> next -> dashboard                                 |            5 |            5 |             0 |        0 |   至少 1 |        0 | `human-review`     |
+| E    | 选择 Build；探测 hook 和工具但保持 inactive                                                   |            0 |            0 |             0 |        0 |        0 |        0 | 无                 |
 
 每个场景都会记录 `automaticRuntimeSteps`，但不会断言一个固定数字，因为 ready-context debounce 和高信号通知事件依赖时序和状态。契约会断言 Build 场景产生 0 个运行时事件。
 
@@ -61,7 +61,7 @@ Stage 0 特意记录这个现象，而不是偷偷修正。后续优化必须证
 
 ### C：只改文档的成本
 
-对于只改文档的 diff，policy report 不会增加源代码变更对应的 `policy.required.tests` finding，required command 列表也不会包含完整的 `npm run test`。但通用 loop 仍会针对 changed repository state 选择一个最小测试候选，所以当前最终 decision 是 `run-tests`。这是可测量的 UX 缺口，不能因此把文档修改标成已验证。
+Smart Verification Planner 会在 Loop 选择命令前先把只改文档的 diff 分类出来。没有 Markdown 或文档验证器时，它设置 `codeTestRequired: false` 和 `verificationRequired: false`。因此 Loop 不会伪造 `run-tests` blocker，而是到达 `ready-for-review`；这不代表文档语义已经被自动证明。如果仓库配置了 docs verifier，系统会明确建议该命令，而不是静默运行完整代码测试。
 
 ### D：缺少验证命令确实需要人工审核
 

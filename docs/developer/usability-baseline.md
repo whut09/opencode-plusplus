@@ -45,7 +45,7 @@ The contract tests live in `test/harness-ux-baseline.test.ts`. Counts below are 
 | ---- | ------------------------------------------------------------------------------------------------------ | ------------: | ------------------: | --------------------: | -------------: | ------------: | --------------------: | ---------------------- |
 | A    | prepare -> retrieve -> edit -> test -> contract check -> evaluate -> next -> dashboard                 |             5 |                   5 |                     0 |              0 |             0 |                     2 | `run-tests`            |
 | B    | failed test -> evaluate/next -> repair -> passing test -> contract check -> evaluate/next -> dashboard |             7 |                   7 |                     0 |              0 |             0 |                     3 | `run-tests`            |
-| C    | docs-only edit -> evaluate -> next -> dashboard                                                        |             5 |                   5 |                     0 |              0 |             0 |                     0 | `run-tests`            |
+| C    | docs-only edit -> evaluate -> next -> dashboard                                                        |             5 |                   5 |                     0 |              0 |             0 |                     0 | `ready-for-review`     |
 | D    | source edit with no executable verifier -> evaluate -> next -> dashboard                               |             5 |                   5 |                     0 |              0 |    at least 1 |                     0 | `human-review`         |
 | E    | Build agent selected; hooks and tools are probed but remain inactive                                   |             0 |                   0 |                     0 |              0 |             0 |                     0 | none                   |
 
@@ -61,7 +61,7 @@ This is deliberately recorded rather than silently corrected in Stage 0. A later
 
 ### C: docs-only cost
 
-The policy report does not add the source-change `policy.required.tests` finding for a documentation-only diff, and the required command list does not contain the full `npm run test` command. The generic loop still selects a minimal test candidate for the changed repository state, so the current final decision is `run-tests`. This is a measurable UX gap, not a reason to label the documentation change verified.
+The Smart Verification Planner classifies a documentation-only diff before the loop chooses a command. When no Markdown or documentation verifier is configured, it sets `codeTestRequired: false` and `verificationRequired: false`. The loop therefore avoids a fake `run-tests` blocker and reaches `ready-for-review` without claiming that the documentation content is semantically verified. If a docs verifier is configured, it is recommended explicitly instead of silently running the full code suite.
 
 ### D: missing verification is a real review boundary
 
