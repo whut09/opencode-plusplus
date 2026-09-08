@@ -245,6 +245,7 @@ function toPluginIntervention(event: ReturnType<typeof listInterventionEvents>[n
     confidence: event.confidence,
     source: event.source,
     timestamp: event.timestamp,
+    resolutionEvidence: event.resolutionEvidence,
     traceRefs: event.traceRefs,
     decisionRefs: event.decisionRefs
   };
