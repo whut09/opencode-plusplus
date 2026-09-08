@@ -306,7 +306,40 @@ test("OpenCode sidecar command guard blocks dangerous shell commands", () => {
   try {
     const result = checkOpencodeSidecarCommand(root, { command: "git reset --hard HEAD" });
     assert.equal(result.allowed, false);
+    assert.equal(result.disposition, "policy-blocked");
+    assert.equal(result.approvalRequired, false);
     assert.equal(result.findings[0]?.kind, "dangerous_command");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("OpenCode sidecar command guard delegates consent commands to native permission", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-command-approval-"));
+  try {
+    const result = checkOpencodeSidecarCommand(root, { command: "npm install zod" });
+
+    assert.equal(result.allowed, true);
+    assert.equal(result.disposition, "approval-required");
+    assert.equal(result.approvalRequired, true);
+    assert.equal(result.findings[0]?.authority, "opencode-permission");
+    assert.match(renderOpencodeSidecarCommandCheck(result), /APPROVAL REQUIRED/);
+    assert.match(renderOpencodeSidecarCommandCheck(result), /Native approval: required/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("OpenCode sidecar command guard marks external paths as native approval", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-command-external-"));
+  try {
+    const external = path.resolve(root, "..", "outside.txt");
+    const result = checkOpencodeSidecarCommand(root, { command: "path-check", paths: [external] });
+
+    assert.equal(result.disposition, "approval-required");
+    assert.equal(result.allowed, true);
+    assert.equal(result.findings[0]?.kind, "external_path");
+    assert.equal(result.findings[0]?.authority, "opencode-permission");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
