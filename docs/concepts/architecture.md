@@ -43,6 +43,8 @@ flowchart TD
 
 This is the default product path: OpenCode owns chat, code reading, edits, and tool execution; OpenCode++ owns the surrounding sidecar, evidence, guards, verification reports, and diagnostics.
 
+Permission and policy are intentionally separate. OpenCode's native permission system represents user consent and may ask before package, network, remote Git, or external-directory operations. OpenCode++'s Command Guard represents repository semantics: it can defer an operation as `approval-required`, or hard-stop a `policy-blocked` destructive command, protected path, unknown project command, or evidence-tampering attempt. Native auto approval cannot override the latter.
+
 ## Reliability Layer Model
 
 OpenCode++ is organized as a set of Guard modules around existing coding agents:
