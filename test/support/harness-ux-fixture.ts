@@ -42,7 +42,7 @@ export async function createHarnessUxFixture(options: HarnessUxRepoOptions): Pro
   const root = createHarnessUxRepo(options);
   const sessionId = `${options.scenarioId}-session`;
   const agent = options.agent ?? "opencode-plusplus";
-  const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+  const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, ".agent-context", "plugin-state.json") });
   const metrics = createHarnessUxMetrics(options.scenarioId);
   const tools = instrumentHarnessTools(plugin, metrics);
   const chatMessage = plugin["chat.message"] as (input: unknown) => Promise<void>;

@@ -20,6 +20,7 @@ import { blockersFromGuardStack } from "../../sidecar-incremental-verifier.js";
 import { PLUGIN_STAGE_TARGETS } from "./performance.js";
 import { assessPluginEditBoundary } from "./edit-boundary.js";
 import { classifyHumanReviewReason, humanReviewRequestPath, upsertHumanReviewRequest } from "./human-review.js";
+import { isDocumentationPath } from "../../../../core/verification/classifier.js";
 
 const evaluations = new Map<string, Promise<PluginEvaluateResult | string>>();
 
@@ -96,16 +97,18 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
   const decision = loop.decisions[0]?.action ?? "ready-for-review";
   const requiredCommands = evaluateRequiredCommands({ loop, policy });
   const boundaryAssessment = assessPluginEditBoundary(policy.changedFiles, boundary);
+  const docsOnlyChange = policy.changedFiles.length > 0 && policy.changedFiles.every(isDocumentationPath);
+  const boundaryExpansionRequired = boundaryAssessment.expansionRequired && !docsOnlyChange;
   const noExecutableTest =
     policy.verification?.codeTestRequired === true &&
     policy.findings.some((finding) => finding.id === "policy.required.tests" && finding.status === "missing") &&
     !requiredCommands.some((command) => /^(npm|pnpm|yarn|bun|node|python|pytest|go|cargo|dotnet|mvn|gradle)\b/i.test(command));
   const reviewReason = classifyHumanReviewReason({
-    boundaryExpansion: boundaryAssessment.expansionRequired,
+    boundaryExpansion: boundaryExpansionRequired,
     noExecutableTest,
     ambiguousRepositoryState: !guardStack.ran
   });
-  const shouldCreateHumanReview = boundaryAssessment.expansionRequired || noExecutableTest || !guardStack.ran || decision === "human-review";
+  const shouldCreateHumanReview = boundaryExpansionRequired || noExecutableTest || !guardStack.ran || decision === "human-review";
   const humanReview = shouldCreateHumanReview
     ? upsertHumanReviewRequest(root, {
         taskId: resolved.taskId,
@@ -121,10 +124,10 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
           ],
           guardError: guardStack.error
         }),
-        affectedFiles: boundaryAssessment.expansionRequired ? boundaryAssessment.outsideAllowed : policy.changedFiles,
+        affectedFiles: boundaryExpansionRequired ? boundaryAssessment.outsideAllowed : policy.changedFiles,
         suggestedCommands: requiredCommands,
         currentBoundary: boundaryAssessment.allowedEditGlobs,
-        requestedBoundary: boundaryAssessment.outsideAllowed,
+        requestedBoundary: boundaryExpansionRequired ? boundaryAssessment.outsideAllowed : [],
         boundaryRevision: boundaryAssessment.boundaryRevision
       })
     : undefined;
@@ -132,7 +135,7 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
   const findings = evaluateFindings({
     policy,
     guardStack,
-    additionalFindings: boundaryAssessment.expansionRequired ? [`Task boundary expansion required for: ${boundaryAssessment.outsideAllowed.join(", ")}`] : []
+    additionalFindings: boundaryExpansionRequired ? [`Task boundary expansion required for: ${boundaryAssessment.outsideAllowed.join(", ")}`] : []
   });
   const missingEvidence = evaluateMissingEvidence({ loop, policy });
   const blocking = Boolean(loop.decisions[0]?.blocking) || !policy.passed || !guardStack.passed || Boolean(humanReview);
