@@ -6,6 +6,7 @@ import {
   parseContextStatusArgs,
   parseEvaluateArgs,
   parseFeedbackArgs,
+  parseHumanReviewArgs,
   parseInterventionsArgs,
   parseNextArgs,
   parsePrepareArgs,
@@ -30,6 +31,14 @@ test("plugin harness arg parsers reject empty tasks and accept optional fields",
   assert.equal(parseRetrieveArgs({ task: "auth", topK: 0 }), "retrieve topK must be a positive integer.");
   assert.deepEqual(parseEvaluateArgs({}), {});
   assert.equal(parseEvaluateArgs({ taskId: "   " }), "evaluate taskId must be a non-empty string when provided.");
+  assert.deepEqual(parseHumanReviewArgs({ taskId: "fix-auth", sessionId: "session-1", requestId: "review-1", action: "approve", confirmed: true }), {
+    taskId: "fix-auth",
+    sessionId: "session-1",
+    requestId: "review-1",
+    action: "approve",
+    confirmed: true
+  });
+  assert.match(String(parseHumanReviewArgs({ action: "approve", confirmed: false })), /confirmed=true/);
   assert.deepEqual(parseNextArgs({ taskId: "fix-login-timeout" }), { taskId: "fix-login-timeout" });
   assert.deepEqual(parseFeedbackArgs({ entryId: "official/auth", source: "official", revision: 2, target: "entry", label: "useful" }), {
     entryId: "official/auth",
