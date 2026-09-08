@@ -33,3 +33,7 @@ Harness-led Orchestrator 按 Plan、PrepareSandbox、Execute、Collect、Evaluat
 Desktop 插件是事件驱动的会话观察者，不启动多轮 executor；CLI/MCP Harness 才能调用 executor 并拥有有界循环。两者共享 application service、evidence policy 和 Guard 实现，但不共享 UI、进程生命周期或回滚权。
 
 详细阶段和收敛算法见 [运行时状态机](../developer/runtime-state-machine.zh-CN.md) 与 [Loop Engineering](loop-engineering.zh-CN.md)。
+
+## Permission 与 Policy 的职责
+
+OpenCode 原生 permission 表示用户授权：包操作、网络、远程 Git 或仓库外路径可以由 OpenCode 弹窗请求同意。OpenCode++ Command Guard 表示仓库语义：它可以把操作交给宿主，返回 `approval-required`；也可以对破坏性命令、受保护路径、未知项目命令或 evidence 篡改返回 `policy-blocked` 并在执行前停止。即使宿主开启自动批准，也不能覆盖后者。
