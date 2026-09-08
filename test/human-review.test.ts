@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -83,6 +83,7 @@ test("plugin failures remain diagnosable when the review store is corrupt", () =
   const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-human-review-corrupt-"));
   try {
     const requestPath = humanReviewRequestPath(root, "task-1", "session-1");
+    mkdirSync(path.dirname(requestPath), { recursive: true });
     writeFileSync(requestPath, "{broken", "utf8");
     const result = createPluginHarnessError(root, "evaluate", "plugin state could not be read", "task-1", "session-1", "argument", undefined, {
       code: "PLUGIN_STATE_CORRUPT",
