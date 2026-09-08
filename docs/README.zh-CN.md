@@ -21,6 +21,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 | 理解事件驱动运行时                    | [OpenCode 全局 Sidecar](integrations/opencode-sidecar.zh-CN.md)         |
 | 理解 context、guard、evidence 和 loop | [总体架构](concepts/architecture.zh-CN.md)                              |
 | 理解 Desktop 与开发者入口边界         | [集成模式](concepts/integration-modes.zh-CN.md)                         |
+| 理解简洁状态和详细 Dashboard           | [Harness 输出](reference/harness-output.zh-CN.md)                        |
 | 使用 CLI（开发者面）                  | [CLI 参考](reference/cli-reference.zh-CN.md)                            |
 | 配置证据可信等级                      | [配置参考](reference/config.zh-CN.md)                                   |
 | 选择最小验证命令                      | [Smart Verification Planner](reference/verification-planner.zh-CN.md)   |
@@ -61,6 +62,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 - [Smart Verification Planner](reference/verification-planner.zh-CN.md)
 - [Permission 与 Guard 边界](reference/permission-boundaries.zh-CN.md)
 - [Context Feedback](reference/context-feedback.zh-CN.md)
+- [Harness 输出](reference/harness-output.zh-CN.md)
 - [Roadmap](roadmap.zh-CN.md)
 
 每个英文人工维护页旁边都有 .zh-CN.md 中文页。CLI help snapshot 是机器生成的规范输出，中文 CLI 参考说明相同命令组并链接到该快照。
