@@ -10,6 +10,7 @@ import {
   type PluginTaskIdSource
 } from "./types.js";
 import { buildPluginHarnessVisualization, persistPluginHarnessVisualization, renderPluginHarnessVisualization } from "./visualization.js";
+import { buildHumanReviewRequest, humanReviewRequestPath, upsertHumanReviewRequest } from "./human-review.js";
 
 export const PLUGIN_HARNESS_SCHEMA_VERSION = "opencode-plusplus.desktop-harness.v1";
 
@@ -93,6 +94,17 @@ export function createPluginHarnessError(
   error: NonNullable<PluginHarnessResult["error"]> = { code: "HARNESS_ERROR", message }
 ): PluginHarnessResult {
   const stopForReview = error.retryable === false;
+  const humanReview = stopForReview
+    ? taskId || sessionId
+      ? upsertHumanReviewRequest(root, {
+          taskId,
+          sessionId,
+          reasonCode: "PLUGIN_FAILURE",
+          explanation: message,
+          now: new Date().toISOString()
+        })
+      : buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: message })
+    : undefined;
   return createPluginHarnessResult(root, {
     ok: false,
     tool,
@@ -105,7 +117,9 @@ export function createPluginHarnessError(
     decision: stopForReview ? "human-review" : "error",
     blocking: true,
     nextAction: stopForReview ? "human-review" : "prepare",
-    performance
+    performance,
+    ...(humanReview ? { humanReview } : {}),
+    artifacts: humanReview ? [path.relative(root, humanReviewRequestPath(root, taskId, sessionId)).replaceAll("\\", "/")] : []
   });
 }
 

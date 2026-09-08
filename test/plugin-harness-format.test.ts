@@ -362,6 +362,8 @@ test("non-retryable plugin errors stop at attributed human review", () => {
   assert.equal(parsed.nextAction, "human-review");
   assert.equal(parsed.error?.attribution, "opencode-plusplus");
   assert.equal(parsed.error?.retryable, false);
+  assert.equal(parsed.humanReview?.reasonCode, "PLUGIN_FAILURE");
+  assert.match(parsed.humanReview?.requiredUserAction ?? "", /Inspect/i);
 });
 
 test("next completion rule forbids claiming done unless finalize is unblocked", () => {
