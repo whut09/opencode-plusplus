@@ -96,10 +96,11 @@ export function transitionForResult(
   result: Pick<PluginHarnessResult, "decision" | "blocking" | "nextAction" | "tool" | "visualization">
 ): HarnessToastTransition {
   if (result.decision === "human-review" || result.nextAction === "human-review") return "human-review-required";
+  if (result.blocking) return "repair-required";
   if (result.decision === "finalize" || (result.nextAction === "finalize" && !result.blocking) || result.visualization?.evidence.status === "verified") {
     return "verified";
   }
-  if (result.blocking || /^(block|repair|repack|rollback|run-tests|error|no-progress)$/i.test(result.decision)) return "repair-required";
+  if (/^(block|repair|repack|rollback|run-tests|error|no-progress)$/i.test(result.decision)) return "repair-required";
   return "verification-started";
 }
 

@@ -205,6 +205,37 @@ test("human review keeps compact status and exposes a separate dashboard", () =>
   assert.match(parsed.dashboard ?? "", /OpenCode\+\+ Harness Dashboard/);
 });
 
+test("a blocking result cannot announce verified from a stale visualization", () => {
+  const parsed = JSON.parse(
+    renderEvaluateText({
+      ...base,
+      decision: "finalize",
+      blocking: true,
+      nextAction: "finalize",
+      visualization: {
+        schemaVersion: "opencode-plusplus.desktop-visualization.v1",
+        view: "harness-progress",
+        currentPhase: "evaluate",
+        stages: [],
+        decisionBasis: [],
+        observed: { selectedFiles: [], rejectedFiles: [], findings: [], missingEvidence: [], requiredCommands: [] },
+        evidence: {
+          workingTreeHash: "hash",
+          currentTreeHashCaptured: true,
+          verifiedFixes: 1,
+          staleEvidence: 0,
+          status: "verified"
+        },
+        interventions: { observed: 0, prevented: 0, requested: 0, repaired: 0, verified: 1, unresolved: 0, "human-review": 0, stale: 0 },
+        decision: { action: "finalize", blocking: true, nextAction: "finalize" },
+        summary: "stale visualization"
+      }
+    })
+  ) as PluginHarnessResult;
+  assert.equal(parsed.compactStatus?.transition, "repair-required");
+  assert.match(parsed.humanReadable ?? "", /Repair required/);
+});
+
 test("compact verified output reports only current command evidence", () => {
   const verifiedEvent = {
     interventionId: "verified-1",
