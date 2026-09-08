@@ -37,7 +37,7 @@ primary mode 会要求当前模型在编辑前调用 `prepare`，需要上下文
 
 ## Desktop 会报告什么
 
-每个 Harness 结果都包含结构化 `actionSummary` 和中英文人类可读总结。各类别严格区分：
+每个 Harness 结果都包含结构化 `actionSummary`。普通 `humanReadable` 默认是简洁状态；显式调用 `opencode_plusplus_dashboard` 或出现 human-review 时可以获得完整 Dashboard。各类别仍严格区分：
 
 | 类别         | 含义                                            |
 | ------------ | ----------------------------------------------- |
@@ -48,7 +48,7 @@ primary mode 会要求当前模型在编辑前调用 `prepare`，需要上下文
 | `verified`   | 有效 command 或 CI 结果匹配当前工作树 hash。    |
 | `unresolved` | 仍有 blocker 或人工审核事项。                   |
 
-结果还会展示选中和排除的文件、findings、必跑命令、证据 freshness、decision、下一步和当前工作树 hash。未被插件捕获的提交列表、模型解释和测试声明不会被算作 OpenCode++ 动作。`human-review` 会报告具体缺失证据或边界决策，不表示要求用户把整个任务重做一遍。
+结构化结果和 Dashboard 会展示选中和排除的文件、findings、必跑命令、证据 freshness、decision、下一步和当前工作树 hash。简洁输出会隐藏空类别，并把未执行命令标为建议。未被插件捕获的提交列表、模型解释和测试声明不会被算作 OpenCode++ 动作。`human-review` 会报告具体缺失证据或边界决策，不表示要求用户把整个任务重做一遍。详见 [Harness 输出](../reference/harness-output.zh-CN.md)。
 
 ## 开发者面 A：Agent-led 兼容流程
 

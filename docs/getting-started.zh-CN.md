@@ -10,8 +10,8 @@ OpenCode++ 是 OpenCode Desktop 的 Windows 插件，适合“看起来合理”
 2. 完全退出 OpenCode Desktop，双击 EXE，等待确认提示。
 3. 重启 OpenCode Desktop，打开仓库，在模式选择器中选择 **OpenCode++**。
 4. 像平常一样描述编码任务。不要启动 OpenCode++ CLI，也不要增加第二个模型。
-5. 任务进入 `evaluate` 或 `next` 后，查看工具结果顶部的 `OpenCode++ action summary`。
-6. 打开 `dashboard` 工具或 `.agent-context/sidecar/visualization.json` 查看阶段视图；打开 `.agent-context/sidecar/latest.md` 查看最近报告。
+5. 任务进入 `evaluate` 或 `next` 后，查看工具结果顶部的简洁 `OpenCode++` 状态。
+6. 需要详细阶段视图时调用 `opencode_plusplus_dashboard` 或打开 `.agent-context/sidecar/visualization.json`；打开 `.agent-context/sidecar/latest.md` 查看最近报告。
 
 ![OpenCode++ 模式](images/opencode-plusplus-mode.png)
 
@@ -19,7 +19,13 @@ OpenCode++ 是 OpenCode Desktop 的 Windows 插件，适合“看起来合理”
 
 模式 Prompt 会引导当前模型在编辑前调用 `retrieve` 和 `prepare`，用内置 shell 执行 required command，并在编辑后调用 `evaluate` 和 `next`。这些工具在 OpenCode Desktop 插件进程内运行。如果检查过期、缺失、被禁止或连续多轮没有进展，Harness 会明确报告原因，而不是静默宣布成功。
 
-可见结果会回答六个具体问题：
+简洁结果先回答当前最重要的问题：
+
+- `✓ Verified`：当前证据允许 finalize；
+- `✗ Repair required`：检查或 policy gate 仍然阻塞；
+- `⚠ Human review`：OpenCode++ 无法自动证明所需条件。
+
+结构化结果和详细 Dashboard 再回答六个审计问题：
 
 - `observed`：OpenCode++ 记录了什么；
 - `prevented`：阻止了哪个命令、路径或 policy 风险；
@@ -28,7 +34,7 @@ OpenCode++ 是 OpenCode Desktop 的 Windows 插件，适合“看起来合理”
 - `verified`：哪个修复有匹配当前工作树的新鲜 command 或 CI evidence；
 - `unresolved`：什么仍然阻塞完成。
 
-当前模型可以生成自然语言任务总结，但那不是 Harness 记录。需要确认 OpenCode++ 自己做了什么时，以 `actionSummary`、Dashboard 和 `.agent-context/` 为准。
+当前模型可以生成自然语言任务总结，但那不是 Harness 记录。需要确认 OpenCode++ 自己做了什么时，以 `actionSummary`、Dashboard 和 `.agent-context/` 为准。两层显示和 Toast 规则见 [Harness 输出](reference/harness-output.zh-CN.md)。
 
 ## 看不到模式怎么办
 

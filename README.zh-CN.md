@@ -59,7 +59,7 @@ Windows 安装器会向 OpenCode 增加一个可选择的 primary mode：**OpenC
 5. 在模式选择器中选择 **OpenCode++**。
 6. 直接输入任务，例如：`修复登录超时并补充回归测试`。
 7. 让该模式在工作过程中调用 `prepare`、`retrieve`、`evaluate` 和 `next`。需要 Harness gate 时不要切回 Build 模式。
-8. 在 `evaluate` 后查看返回的 **Harness Dashboard**，或随时调用 `opencode_plusplus_dashboard`，查看阶段进度、选中/排除文件、决策依据、证据新鲜度、介入记录和最终总结。
+8. 在 `evaluate` 或 `next` 后查看简洁的 `OpenCode++` 状态；需要阶段进度、选中/排除文件、决策依据、证据新鲜度、介入记录和最终总结时调用 `opencode_plusplus_dashboard`。
 9. 需要查看证据、发现项、必跑命令或最终报告时，打开 `.agent-context/`。
 
 安装器只写入以下 OpenCode 配置文件：
@@ -87,7 +87,7 @@ Windows 安装器会向 OpenCode 增加一个可选择的 primary mode：**OpenC
 
 ### 用户会看到什么
 
-Desktop 工具结果现在包含可见的 `OpenCode++ action summary` 和 Harness Dashboard。总结会直接列出 `observed`（检测到）、`prevented`（已阻止）、`requested`（已要求）、`repaired`（已修正）、`verified`（已验证）和 `unresolved`（未解决）。Dashboard 展示 `Plan -> Prepare -> Retrieve -> Execute -> Collect -> Evaluate -> Decide -> Persist -> Finalize` 阶段，并标记已完成、进行中、阻塞和待处理状态。同时展示当前 decision、必跑命令、当前工作树 hash 是否已捕获、证据状态、介入统计、选中/排除文件和简短最终总结。
+Desktop 工具结果默认显示简洁的 `OpenCode++ ✓ Verified`、`✗ Repair required` 或 `⚠ Human review` 状态。结构化 JSON 仍保留包含 `observed`、`prevented`、`requested`、`repaired`、`verified` 和 `unresolved` 的 `actionSummary`。需要完整的 `Plan -> Prepare -> Retrieve -> Execute -> Collect -> Evaluate -> Decide -> Persist -> Finalize` 视图时调用 `opencode_plusplus_dashboard`。详见 [Harness 输出](docs/reference/harness-output.zh-CN.md)。
 
 Dashboard 展示的是已记录的系统事实和决策输入，不展示模型隐藏的思维链。这样可以支持调试和人工审核，又不会把模型内部推理冒充成可审计事实。
 
