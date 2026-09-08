@@ -6,7 +6,7 @@ import test from "node:test";
 import { runGit } from "../src/core/git.js";
 import { appendInterventionEvent, createInterventionEvent } from "../src/harness/observability/intervention-ledger.js";
 import { OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES } from "../src/integrations/opencode/plugin-runtime/harness/index.js";
-import { pluginEvaluateStatePath } from "../src/integrations/opencode/plugin-runtime/harness/session.js";
+import { pluginEvaluateStatePath, taskRunManifestPath } from "../src/integrations/opencode/plugin-runtime/harness/session.js";
 import { readExecutionTrace } from "../src/harness/observability/execution-trace.js";
 import { createOpenCodePlusPlusSidecar } from "../src/integrations/opencode/plugin-runtime/index.js";
 import type { PluginHarnessResult } from "../src/integrations/opencode/plugin-runtime/harness/types.js";
@@ -174,6 +174,44 @@ test("Desktop evaluate stops when the repository has no runnable test command", 
     assert.match(evaluated.humanReadable ?? "", /Need you/);
     assert.match(evaluated.humanReadable ?? "", /No runnable test command is configured/);
     assert.equal(next.nextAction, "human-review");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Desktop human review approves a boundary expansion without re-preparing", async () => {
+  const root = createPluginHarnessRepo();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, PluginHarnessTool>;
+    const prepared = result(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout bug", sessionId: "session-boundary" }));
+    mkdirSync(path.join(root, "packages", "shared"), { recursive: true });
+    writeFileSync(path.join(root, "packages", "shared", "token.ts"), "export const tokenLifetime = 900;\n", "utf8");
+
+    const evaluated = result(await tools.opencode_plusplus_evaluate.execute({ taskId: prepared.taskId, sessionId: "session-boundary" }));
+    assert.equal(evaluated.decision, "human-review");
+    assert.equal(evaluated.humanReview?.reasonCode, "BOUNDARY_EXPANSION_REQUIRED");
+    assert.ok(evaluated.humanReview?.affectedFiles.includes("packages/shared/token.ts"));
+    assert.match(evaluated.humanReview?.explanation ?? "", /Current:|outside/i);
+
+    const resumed = result(
+      await tools.opencode_plusplus_human_review.execute({
+        taskId: prepared.taskId,
+        sessionId: "session-boundary",
+        requestId: evaluated.humanReview?.requestId,
+        action: "approve",
+        confirmed: true
+      })
+    );
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.humanReview?.status, "resumed");
+    assert.equal(resumed.nextAction, "evaluate");
+    assert.ok((resumed.boundaryRevision ?? 0) > (evaluated.boundaryRevision ?? 0));
+    assert.ok(resumed.allowedEditGlobs.includes("packages/shared/token.ts"));
+    assert.equal(existsSync(path.join(root, ".agent-context", "runs", prepared.taskId!, "run.json")), true);
+    const manifest = JSON.parse(readFileSync(taskRunManifestPath(root, prepared.taskId!), "utf8")) as { allowedEditGlobs: string[]; boundaryRevision: number };
+    assert.ok(manifest.allowedEditGlobs.includes("packages/shared/token.ts"));
+    assert.equal(manifest.boundaryRevision, resumed.boundaryRevision);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -33,9 +33,11 @@ export async function nextPluginHarnessAction(root: string, args: PluginNextArgs
     mustInspect: latest.mustInspect,
     allowedEditGlobs: latest.allowedEditGlobs,
     avoidEditGlobs: latest.avoidEditGlobs,
+    boundaryRevision: latest.boundaryRevision,
     artifacts: latest.artifacts,
     nextAction,
     error: undefined,
-    interventions
+    interventions,
+    humanReview: latest.humanReview
   });
 }

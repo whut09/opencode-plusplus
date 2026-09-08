@@ -5,6 +5,7 @@ import {
   parseDashboardArgs,
   parseEvaluateArgs,
   parseFeedbackArgs,
+  parseHumanReviewArgs,
   parseInterventionsArgs,
   parseNextArgs,
   parsePrepareArgs,
@@ -15,6 +16,7 @@ import { evaluatePluginHarness } from "./evaluate.js";
 import { renderEvaluateText, renderHarnessError, renderNextText, renderPrepareText, renderRetrieveText, renderPluginResult } from "./format.js";
 import { nextPluginHarnessAction } from "./next.js";
 import { preparePluginHarnessTask } from "./prepare.js";
+import { reviewPluginHarnessTask } from "./review.js";
 import { retrievePluginHarnessContext } from "./retrieve.js";
 import {
   runContextFeedbackTool,
@@ -43,6 +45,7 @@ export {
   parsePrepareArgs,
   parseRetrieveArgs
 } from "./args.js";
+export { parseHumanReviewArgs } from "./args.js";
 export { renderEvaluateText, renderHarnessError, renderNextText, renderPrepareText, renderRetrieveText } from "./format.js";
 export { completionRuleFor, isFinalizeAction } from "./completion.js";
 
@@ -88,6 +91,26 @@ export async function executeFeedbackTool(root: string, args: unknown): Promise<
   const parsed = parseFeedbackArgs(args);
   if (typeof parsed === "string") return structuredJson(contextToolFailure("context-feedback", invalidArguments(parsed)));
   return structuredJson(await runContextFeedbackTool({ repo: root, ...parsed }));
+}
+
+export async function executeHumanReviewTool(
+  root: string,
+  args: unknown,
+  context?: OpenCodeSidecarRuntimeContext,
+  recorder?: OpenCodeSidecarRecorder
+): Promise<string> {
+  return runHarnessTool(
+    root,
+    "human-review",
+    async () => {
+      const parsed = parseHumanReviewArgs(args);
+      if (typeof parsed === "string") return renderHarnessError("human-review", parsed, root);
+      const result = await reviewPluginHarnessTask(root, parsed);
+      return typeof result === "string" ? renderHarnessError("human-review", result, root) : renderPluginResult(result);
+    },
+    context,
+    recorder
+  );
 }
 
 export async function executeContextSearchTool(root: string, args: unknown): Promise<string> {
@@ -160,9 +183,11 @@ export async function executeDashboardTool(
             mustInspect: latest.mustInspect,
             allowedEditGlobs: latest.allowedEditGlobs,
             avoidEditGlobs: latest.avoidEditGlobs,
+            boundaryRevision: latest.boundaryRevision,
             artifacts: latest.artifacts,
             nextAction: latest.nextAction,
-            interventions
+            interventions,
+            humanReview: latest.humanReview
           })
         );
       }
@@ -247,7 +272,7 @@ export async function executeNextTool(
 
 async function runHarnessTool(
   root: string,
-  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next",
+  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review",
   action: () => Promise<string>,
   context?: OpenCodeSidecarRuntimeContext,
   recorder?: OpenCodeSidecarRecorder
@@ -262,7 +287,7 @@ async function runHarnessTool(
 }
 
 function notifyFromToolResult(
-  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next",
+  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review",
   output: string,
   context?: OpenCodeSidecarRuntimeContext,
   recorder?: OpenCodeSidecarRecorder
