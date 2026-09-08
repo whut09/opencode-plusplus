@@ -253,6 +253,8 @@ test("OpenCode sidecar verify checks plugin hooks, event log readiness, and guar
     assert.equal(report.guardStack.regression?.matches, 0);
     assert.equal(report.guardStack.impact?.risk, "Low");
     assert.equal(typeof report.guardStack.tests?.fullConfidenceCommands, "number");
+    assert.equal(report.guardStack.verification?.classification, "source-local");
+    assert.equal(report.guardStack.verification?.codeTestRequired, true);
     assert.equal(report.guardStack.policy?.passed, false);
     assert.match(report.blockers.join("\n"), /Policy required evidence missing/);
     assert.equal(report.checks.find((check) => check.name === "global-plugin")?.status, "pass");
