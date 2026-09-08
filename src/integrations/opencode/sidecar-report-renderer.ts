@@ -23,13 +23,22 @@ interface GuardStack {
 export function renderCommandCheck(result: {
   command: string | null;
   paths: string[];
+  disposition?: "allowed" | "approval-required" | "policy-blocked";
   allowed: boolean;
-  findings: Array<{ severity: string; message: string; evidence?: string[]; doInstead?: string }>;
+  approvalRequired?: boolean;
+  findings: Array<{
+    severity: string;
+    message: string;
+    evidence?: string[];
+    doInstead?: string;
+    disposition?: "allowed" | "approval-required" | "policy-blocked";
+  }>;
 }): string {
   const findingLines = result.findings.length
     ? result.findings.flatMap((finding) => {
+        const label = finding.disposition === "approval-required" ? "APPROVAL REQUIRED" : finding.severity === "warning" ? "WARNING" : "BLOCKED";
         const lines = [
-          `${finding.severity === "warning" ? "WARNING" : "BLOCKED"}: ${finding.message}`,
+          `${label}: ${finding.message}`,
           `Evidence: ${(finding.evidence ?? []).join(" | ") || "n/a"}`
         ];
         if (finding.doInstead) lines.push(`Do instead: ${finding.doInstead}`);
@@ -41,7 +50,8 @@ export function renderCommandCheck(result: {
     "",
     `Command: ${result.command ?? "none"}`,
     `Paths: ${result.paths.length ? result.paths.join(", ") : "none"}`,
-    `Result: ${result.allowed ? "allow" : "block"}`,
+    `Result: ${result.disposition ?? (result.allowed ? "allowed" : "policy-blocked")}`,
+    `Native approval: ${result.approvalRequired ? "required" : "not required"}`,
     "",
     "Findings:",
     ...findingLines
