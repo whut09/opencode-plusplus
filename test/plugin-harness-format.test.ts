@@ -160,10 +160,33 @@ test("Desktop prints OpenCode++ Harness status to the app log and status toast",
   assert.match(toasts[0], /repair required/);
   assert.match(toasts[0], /missing tests/);
   assert.match(logs.join("\n"), /OpenCode\+\+ Harness Dashboard/);
+  assert.equal(notifyPluginHarnessStatus(context, base, recorder), "log");
+  assert.equal(toasts.length, 1);
+
+  assert.equal(
+    notifyPluginHarnessStatus(
+      context,
+      { ...base, decision: "finalize", blocking: false, nextAction: "finalize" },
+      recorder
+    ),
+    "toast"
+  );
+  assert.match(toasts[1] ?? "", /verified/);
 
   toasts.length = 0;
   assert.equal(notifyPluginHarnessStatus(context, { ...base, tool: "retrieve" }, recorder), "log");
   assert.equal(toasts.length, 0);
+
+  const verificationContext = { ...context, directory: "C:/verification-started" };
+  assert.equal(
+    notifyPluginHarnessStatus(
+      verificationContext,
+      { ...base, decision: "ready-for-review", blocking: false, nextAction: "evaluate" },
+      recorder
+    ),
+    "toast"
+  );
+  assert.match(toasts[0] ?? "", /verification started/);
 });
 
 test("explicit dashboard rendering retains the detailed view", () => {
