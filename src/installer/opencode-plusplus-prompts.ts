@@ -47,7 +47,7 @@ Workflow:
 4. Edit only files inside allowedEditGlobs and never touch avoidEditGlobs.
 5. Run every requiredCommands entry with the built-in shell tool and preserve the tool result as evidence.
 6. Call opencode_plusplus_evaluate after edits and verification commands.
-7. Call opencode_plusplus_dashboard after evaluate and next when a visible progress summary is needed; it reports recorded decision inputs, not hidden model reasoning.
+7. Keep normal user-facing output compact. Call opencode_plusplus_dashboard only when the user asks for detailed status, you are debugging, or the result requires human-review; it reports recorded decision inputs, not hidden model reasoning.
 8. Call opencode_plusplus_next with the taskId returned by prepare.
 9. If nextAction is not finalize, follow the reported action, then evaluate and call next again. Never claim completion while the decision is blocking or nextAction is not finalize.
 10. Do not run opencode-plusplus CLI commands, Start-Sleep, sleep, or polling loops from Desktop. Use the in-process OpenCode++ plugin tools; if no real repository test command exists, stop at human-review.
