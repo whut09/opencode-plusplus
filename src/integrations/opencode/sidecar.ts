@@ -12,6 +12,7 @@ import { blockersFromGuardStack, runSidecarIncrementalVerifier, warningsFromGuar
 import { defaultOpenCodePlusPlusPluginFile } from "./plugin-runtime/state.js";
 import { pluginInterventionSnapshot } from "./plugin-runtime/harness/interventions.js";
 import { readPluginEvaluateState, readPluginHarnessSession } from "./plugin-runtime/harness/session.js";
+import type { OpenCodeSidecarCommandAuthority, OpenCodeSidecarCommandDisposition } from "./command-permission.js";
 
 export interface OpenCodeSidecarVerifyOptions {
   pluginPath?: string;
@@ -88,19 +89,31 @@ export interface OpenCodeSidecarGuardStackSummary {
 }
 
 export interface OpenCodeSidecarCommandFinding {
-  kind: "dangerous_command" | "unknown_script" | "unknown_make_target" | "unknown_pyproject_script" | "protected_path" | "secret_path";
+  kind:
+    | "dangerous_command"
+    | "unknown_script"
+    | "unknown_make_target"
+    | "unknown_pyproject_script"
+    | "protected_path"
+    | "secret_path"
+    | "approval_required"
+    | "external_path";
   severity: "blocker" | "warning";
   message: string;
   evidence: string[];
   doInstead?: string;
   rule?: string;
+  disposition?: OpenCodeSidecarCommandDisposition;
+  authority?: OpenCodeSidecarCommandAuthority;
 }
 
 export interface OpenCodeSidecarCommandCheckResult {
   repo: string;
   command: string | null;
   paths: string[];
+  disposition: OpenCodeSidecarCommandDisposition;
   allowed: boolean;
+  approvalRequired: boolean;
   findings: OpenCodeSidecarCommandFinding[];
 }
 
