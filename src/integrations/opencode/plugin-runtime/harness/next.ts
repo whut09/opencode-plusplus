@@ -29,6 +29,7 @@ export async function nextPluginHarnessAction(root: string, args: PluginNextArgs
     findings: latest.findings,
     missingEvidence: latest.missingEvidence,
     requiredCommands: latest.requiredCommands,
+    verification: latest.verification,
     mustInspect: latest.mustInspect,
     allowedEditGlobs: latest.allowedEditGlobs,
     avoidEditGlobs: latest.avoidEditGlobs,

@@ -11,6 +11,7 @@ import { cacheStatusForStats, contextModeForStats, pluginPerformance, PLUGIN_STA
 import { createPluginHarnessError } from "./protocol.js";
 import type { PluginPrepareArgs, PluginPrepareResult } from "./types.js";
 import { pluginInterventionSnapshot, recordPluginContextSelection } from "./interventions.js";
+import { buildVerificationPlan } from "../../../../core/verification/planner.js";
 
 export async function preparePluginHarnessTask(root: string, args: PluginPrepareArgs): Promise<PluginPrepareResult> {
   const staged = await runPluginStage("prepare", () => preparePluginHarnessTaskInternal(root, args));
@@ -57,6 +58,8 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
   });
   const artifacts = manifest.files ?? [];
   const selectedFiles = manifest.mustInspect;
+  const verification = manifest.verification ?? buildVerificationPlan(context, { changedFiles: manifest.contextFiles ?? selectedFiles });
+  const requiredCommands = verification.commands.length ? verification.commands.map((command) => command.command) : manifest.requiredCommands;
   const excludedFiles = (manifest.contextFiles ?? [])
     .filter((file) => !selectedFiles.includes(file))
     .map((file) => ({ path: file, reason: "related context was not marked mustInspect" }));
@@ -68,7 +71,7 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
       contextFingerprint: contextFingerprint(root, resolvedTaskId),
       initialWorkingTreeHash: currentSidecarWorkingTreeHash(root),
       editBoundary: { allowedEditGlobs: manifest.allowedEditGlobs, avoidEditGlobs: manifest.avoidEditGlobs },
-      requiredTests: manifest.requiredCommands,
+      requiredTests: requiredCommands,
       eventKey: `prepare:${resolvedTaskId}`
     });
   }
@@ -87,7 +90,8 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
     mustInspect: manifest.mustInspect,
     allowedEditGlobs: manifest.allowedEditGlobs,
     avoidEditGlobs: manifest.avoidEditGlobs,
-    requiredCommands: manifest.requiredCommands,
+    requiredCommands,
+    verification,
     artifacts,
     interventions: pluginInterventionSnapshot(root, resolvedTaskId, selectedFiles, excludedFiles),
     performance: {

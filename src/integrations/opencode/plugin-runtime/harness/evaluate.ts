@@ -107,6 +107,7 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
     findings: evaluateFindings({ policy, guardStack }),
     missingEvidence: evaluateMissingEvidence({ loop, policy }),
     requiredCommands: evaluateRequiredCommands({ loop, policy }),
+    verification: policy.verification ?? loop.verification,
     nextAction: "next",
     mustInspect: [],
     allowedEditGlobs: [],
@@ -143,6 +144,7 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
     nextAction: result.nextAction,
     summary: result.summary,
     interventions: result.interventions,
+    verification: result.verification,
     updatedAt: new Date().toISOString()
   });
   return result;

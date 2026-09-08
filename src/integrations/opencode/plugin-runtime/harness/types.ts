@@ -18,6 +18,7 @@ export type OpenCodePlusPlusPluginToolName = (typeof OPENCODE_PLUSPLUS_PLUGIN_TO
 
 export type PluginHarnessTaskType = "bugfix" | "feature" | "refactor";
 import type { InterventionStatus } from "../../../../harness/types.js";
+import type { VerificationPlan } from "../../../../core/verification/types.js";
 
 export interface PluginPrepareArgs {
   task: string;
@@ -233,6 +234,7 @@ export interface PluginHarnessResult {
   hits?: Array<{ path: string; score: number; reason: string; scoreBreakdown?: Record<string, number> }>;
   context?: import("../../../../context-registry/types.js").ContextFetchResult;
   performance?: PluginPerformance;
+  verification?: VerificationPlan;
   interventions?: PluginInterventionSnapshot;
   actionSummary?: PluginActionSummary;
   visualization?: import("./visualization.js").PluginHarnessVisualization;
@@ -264,6 +266,7 @@ export interface PluginEvaluateState {
   summary: string;
   updatedAt: string;
   interventions?: PluginInterventionSnapshot;
+  verification?: VerificationPlan;
   visualization?: import("./visualization.js").PluginHarnessVisualization;
 }
 
