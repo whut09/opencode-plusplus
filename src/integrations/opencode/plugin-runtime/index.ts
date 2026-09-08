@@ -156,7 +156,7 @@ export async function createOpenCodePlusPlusSidecar(
       }),
       opencode_plusplus_status: controlTool("Show OpenCode++ installation and enabled status.", () => readOpenCodePlusPlusPluginStatus(stateFile)),
       opencode_plusplus_dashboard: desktopHarnessTool(
-        "Show the visible OpenCode++ Harness dashboard and actionSummary: what the plugin observed, prevented, requested, repaired, verified, and left unresolved. Do not replace it with a model-generated summary.",
+        "Show the detailed OpenCode++ Harness Dashboard when the user asks for it, debugging is needed, or human review is required. It shows recorded facts and actionSummary, not hidden model reasoning; normal tool results stay compact.",
         { taskId: { type: "string" }, sessionId: { type: "string" } },
         (args) => executeDashboardTool(context.directory, args, context, recorder)
       ),
@@ -232,12 +232,12 @@ export async function createOpenCodePlusPlusSidecar(
         (args) => executeFeedbackTool(context.directory, args)
       ),
       opencode_plusplus_evaluate: desktopHarnessTool(
-        "Call after edits or before claiming done. Returns OpenCode++ actionSummary, blocking findings, decision, and exact missing evidence.",
+        "Call after edits or before claiming done. Returns a compact OpenCode++ status plus structured actionSummary, blocking findings, decision, and exact missing evidence.",
         { taskId: { type: "string" }, sessionId: { type: "string" } },
         (args) => executeEvaluateTool(context.directory, args, context, recorder)
       ),
       opencode_plusplus_next: desktopHarnessTool(
-        "Call to get the next harness action and copy actionSummary into the final response. If nextAction is not finalize, do not claim completion or ask the user to repeat the task.",
+        "Call to get the next harness action and compact status. Use the structured actionSummary for facts; if nextAction is not finalize, do not claim completion or ask the user to repeat the task.",
         { taskId: { type: "string" }, sessionId: { type: "string" } },
         (args) => executeNextTool(context.directory, args, context, recorder)
       )

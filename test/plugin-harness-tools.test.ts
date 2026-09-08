@@ -30,8 +30,9 @@ test("OpenCode plugin exposes in-process harness tools without spawning a CLI", 
     const tools = plugin.tool as Record<string, PluginHarnessTool>;
     assert.deepEqual(Object.keys(tools).sort(), [...OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES].sort());
     assert.match(tools.opencode_plusplus_prepare.description, /before editing/i);
-    assert.match(tools.opencode_plusplus_evaluate.description, /after edits/i);
+    assert.match(tools.opencode_plusplus_evaluate.description, /compact/i);
     assert.match(tools.opencode_plusplus_next.description, /do not claim/i);
+    assert.match(tools.opencode_plusplus_dashboard.description, /detailed/i);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
