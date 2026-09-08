@@ -11,7 +11,7 @@ export function buildVerificationPlan(input: string | ContextPackage, options: V
   const changedFiles = options.changedFiles ?? [];
   const classification = classifyVerificationChanges(changedFiles, { context });
   const discovery = discoverVerificationCommands(root);
-  const commands = selectCommands(discovery.commands, classification, changedFiles, context, options);
+  const commands = selectCommands(discovery.commands, classification, changedFiles, context);
   const verificationRequired = classification.codeTestRequired || commands.length > 0 || Boolean(options.docsBuildRequired && classification.docsOnly);
 
   return {
@@ -44,8 +44,7 @@ function selectCommands(
   discovered: VerificationCommand[],
   classification: VerificationPlan["classification"],
   changedFiles: string[],
-  context: ContextPackage | undefined,
-  options: VerificationPlannerOptions
+  context: ContextPackage | undefined
 ): VerificationCommand[] {
   if (classification.docsOnly) {
     return selectDocsCommands(discovered);
