@@ -51,6 +51,16 @@ The contract tests live in `test/harness-ux-baseline.test.ts`. Counts below are 
 
 `automaticRuntimeSteps` is reported for every case but is not asserted to one fixed number because the ready-context debounce and high-signal notification events are timing- and state-dependent. The contract does assert that the Build case produces zero runtime events.
 
+## Stage 4 Display Baseline
+
+Stage 4 changes presentation, not the workflow counts above. The same structured result remains available to the model, API clients, artifacts, and Dashboard, while ordinary human-readable output uses one compact status:
+
+- `OpenCode++ ✓ Verified` when current evidence allows finalization;
+- `OpenCode++ ✗ Repair required` when a check or gate blocks progress;
+- `OpenCode++ ⚠ Human review` when the Harness cannot prove the required condition.
+
+The compact view omits empty action categories and never labels an unexecuted recommended command as a passed check. `opencode_plusplus_dashboard` remains the explicit detailed view; human-review results also expose a `dashboard` field. Toasts are deduplicated transitions (`verification started`, `repair required`, `human review required`, and `verified`), not one notification per intervention.
+
 ## What This Baseline Shows
 
 ### A and B: evidence ordering cost
