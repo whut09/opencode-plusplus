@@ -90,6 +90,8 @@ export function renderVerifyReport(result: {
   return [
     "OpenCode++ OpenCode Sidecar Verify",
     "",
+    ...renderCompactSidecarStatus(result),
+    "",
     `Repo: ${result.repo}`,
     `Plugin: ${path.relative(result.repo, result.pluginPath)}`,
     `Event log: ${path.relative(result.repo, result.eventLogPath)}`,
@@ -129,7 +131,8 @@ export function renderLatestMarkdown(result: {
     "# OpenCode++ Sidecar Latest",
     "",
     `Generated: ${result.generatedAt}`,
-    `Result: ${result.ok ? "ready" : "blocked"}`,
+    "",
+    ...renderCompactSidecarStatus(result),
     "",
     "## Changed Files",
     ...(result.changedFiles.length ? result.changedFiles.map((file) => `- \`${file}\``) : ["- none"]),
@@ -148,6 +151,17 @@ export function renderLatestMarkdown(result: {
     "## Checks",
     ...result.checks.map((check) => `- **${check.status.toUpperCase()}** ${check.name}: ${check.details}`)
   ].join("\n");
+}
+
+function renderCompactSidecarStatus(result: { ok: boolean; blockers: string[]; checks: Check[] }): string[] {
+  const failedChecks = result.checks.filter((check) => /fail|error|blocked/i.test(check.status)).map((check) => check.name);
+  const status = result.ok ? "✓ Verified" : "✗ Repair required";
+  return [
+    "Status",
+    `OpenCode++ ${status}`,
+    ...(failedChecks.length ? ["", "Failed", ...failedChecks.map((check) => `- ${check}`)] : []),
+    ...(result.blockers.length ? ["", "Next", `- Resolve ${result.blockers[0]}`] : [])
+  ];
 }
 
 interface InterventionReport {
