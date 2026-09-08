@@ -51,6 +51,16 @@
 
 每个场景都会记录 `automaticRuntimeSteps`，但不会断言一个固定数字，因为 ready-context debounce 和高信号通知事件依赖时序和状态。契约会断言 Build 场景产生 0 个运行时事件。
 
+## Stage 4 显示基线
+
+Stage 4 只改变展示，不改变上面的流程计数。模型、API client、artifact 和 Dashboard 仍然可以获得相同的结构化结果；普通人类可读输出改为一个简洁状态：
+
+- 当前证据允许 finalize 时显示 `OpenCode++ ✓ Verified`；
+- 检查或 gate 阻塞时显示 `OpenCode++ ✗ Repair required`；
+- Harness 无法证明所需条件时显示 `OpenCode++ ⚠ Human review`。
+
+简洁视图会隐藏空的动作类别，也不会把未执行的推荐命令标成通过检查。`opencode_plusplus_dashboard` 仍是显式的详细视图；human-review 结果也提供 `dashboard` 字段。Toast 只对去重后的状态迁移发送（`verification started`、`repair required`、`human review required`、`verified`），不会对每条介入记录逐条弹出。
+
 ## 基线揭示的问题
 
 ### A、B：证据顺序成本
