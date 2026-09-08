@@ -1,0 +1,10 @@
+{
+  "name": "verification-fixture-workspace",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build": "echo build"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "verification-fixture-npm",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  }
+}

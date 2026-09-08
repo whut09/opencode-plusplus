@@ -1,0 +1,8 @@
+{
+  "name": "@verification/api",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  }
+}

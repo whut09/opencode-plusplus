@@ -1,0 +1,9 @@
+[project]
+name = "verification-fixture-python"
+version = "0.1.0"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
