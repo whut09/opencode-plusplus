@@ -10,6 +10,8 @@ import { executionTracePath, startExecutionTrace } from "../harness/observabilit
 import { initialRunState, writeRunState } from "./runtime-state.js";
 import { buildRegressionReport, renderRegressionReport } from "../harness/verification-plane/guards/regression.js";
 import { taskSlug } from "../core/task-id.js";
+import { buildVerificationPlan, renderVerificationPlan } from "../core/verification/planner.js";
+import type { VerificationPlan } from "../core/verification/types.js";
 
 export interface TaskRunOptions extends TaskContextOptions {
   base?: string;
@@ -52,6 +54,7 @@ export interface TaskRunManifest {
     recommendedRegressionTests: string[];
     fullConfidenceCommands: string[];
   };
+  verification?: VerificationPlan;
   traceFile: string;
   files: string[];
 }
@@ -67,6 +70,7 @@ export function writeTaskRun(context: ContextPackage, task: string, options: Tas
   const avoidEditGlobs = avoidEditGlobsFor(context, pack);
   const testSelectionTargets = pack.files.filter((file) => file.category === "direct-source" || file.category === "entrypoint").map((file) => file.path);
   const testSelection = buildTestSelection(context, { forPaths: testSelectionTargets, base });
+  const verification = buildVerificationPlan(context, { changedFiles: testSelectionTargets });
   const impact = buildChangeImpactReport(context, { base });
   const regression = buildRegressionReport(context, { base, task });
   const manifest = buildTaskRunManifest(context, pack, {
@@ -75,6 +79,7 @@ export function writeTaskRun(context: ContextPackage, task: string, options: Tas
     allowedEditGlobs,
     avoidEditGlobs,
     testSelection,
+    verification,
     impact,
     regression
   });
@@ -91,6 +96,7 @@ export function writeTaskRun(context: ContextPackage, task: string, options: Tas
     ["edit-boundary.md", renderEditBoundary(manifest)],
     ["expected-diff.md", renderExpectedDiff(context, pack, manifest)],
     ["tests.md", renderTestSelection(context, { forPaths: testSelectionTargets, base })],
+    ["verification-plan.md", renderVerificationPlan(verification)],
     ["verify.md", renderTaskVerify(context, { base, diff: true })],
     ["regression.md", renderRegressionReport(regression)],
     ["impact.md", renderChangeImpactReport(context, { base })],
@@ -126,14 +132,14 @@ function buildTaskRunManifest(
     allowedEditGlobs: string[];
     avoidEditGlobs: string[];
     testSelection: ReturnType<typeof buildTestSelection>;
+    verification: VerificationPlan;
     impact: ReturnType<typeof buildChangeImpactReport>;
     regression: ReturnType<typeof buildRegressionReport>;
   }
 ): TaskRunManifest {
   const mustInspect = mustInspectFor(pack);
   const requiredCommands = dedupe([
-    ...pack.suggestedCommands,
-    ...options.testSelection.minimalCommands,
+    ...options.verification.commands.map((command) => command.command),
     ...options.impact.requiredVerification,
     ...options.regression.requiredTests
   ]);
@@ -166,6 +172,7 @@ function buildTaskRunManifest(
       recommendedRegressionTests: options.testSelection.recommendedRegressionTests,
       fullConfidenceCommands: options.testSelection.fullConfidenceCommands
     },
+    verification: options.verification,
     traceFile: "",
     files: []
   };
@@ -227,7 +234,7 @@ function renderAgentPrompt(agent: "OpenCode" | "Codex" | "Claude Code" | "Cursor
     agentNote,
     "",
     heading(2, "Read first"),
-    bullet(["plan.md", "edit-boundary.md", "pack.md", "tests.md", "regression.md", "impact.md"].map(code)),
+    bullet(["plan.md", "edit-boundary.md", "pack.md", "tests.md", "verification-plan.md", "regression.md", "impact.md"].map(code)),
     "",
     heading(2, "Must inspect"),
     bullet(manifest.mustInspect.map(code)),

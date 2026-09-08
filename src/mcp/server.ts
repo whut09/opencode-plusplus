@@ -18,7 +18,7 @@ import { buildLoopControllerReport, renderLoopControllerReport, writeLoopControl
 import { buildPolicyReport, renderPolicyReport, type PolicyFailOn } from "../harness/verification-plane/policy-engine.js";
 import { renderTaskVerify } from "../outputs/task-harness.js";
 import { buildTaskPack } from "../outputs/task-context.js";
-import { buildTestSelection } from "../outputs/test-selector.js";
+import { buildVerificationPlan } from "../core/verification/planner.js";
 import {
   appendExecutionTraceStep,
   readExecutionTrace,
@@ -799,7 +799,6 @@ async function runRuntimeRepair(args: RuntimeRepairInput): Promise<OpenCodePlusp
     evidencePolicy: args.evidencePolicy
   });
   const policy = buildPolicyReport(context, { base: args.base ?? "main", traceId: args.traceId, evidencePolicy: args.evidencePolicy });
-  const tests = buildTestSelection(context, { diff: true, base: args.base ?? "main" });
   const manifest = readTaskRunManifest(context.scan.root, args.traceId ?? mcpTaskSlug(args.task));
   const guidance = buildRuntimeGuidance(context, args.task, {
     loop: loopResult.report,
@@ -820,7 +819,7 @@ async function runRuntimeRepair(args: RuntimeRepairInput): Promise<OpenCodePlusp
       ...guidance.requiredCommands,
       ...loopResult.report.decisions.map((decision) => decision.command).filter((command): command is string => Boolean(command)),
       ...policy.findings.map((finding) => finding.requiredAction).filter((command): command is string => Boolean(command)),
-      ...tests.fullConfidenceCommands
+      ...(loopResult.report.verification?.commands.map((command) => command.command) ?? [])
     ]),
     markdown: [renderLoopControllerReport(loopResult.report), "", renderPolicyReport(policy)].join("\n")
   };
@@ -907,12 +906,12 @@ function fallbackManifest(
   tokenBudget?: number
 ): Pick<TaskRunManifest, "requiredCommands" | "mustInspect" | "allowedEditGlobs" | "avoidEditGlobs"> {
   const pack = buildTaskPack(context, task, { type, tokenBudget });
-  const tests = buildTestSelection(context, {
-    forPaths: pack.files.filter((file) => file.category === "direct-source" || file.category === "entrypoint").map((file) => file.path)
+  const verification = buildVerificationPlan(context, {
+    changedFiles: pack.files.filter((file) => file.category === "direct-source" || file.category === "entrypoint").map((file) => file.path)
   });
 
   return {
-    requiredCommands: unique([...pack.suggestedCommands, ...tests.minimalCommands, ...tests.recommendedCommands, ...tests.fullConfidenceCommands]),
+    requiredCommands: unique(verification.commands.map((command) => command.command)),
     mustInspect: unique([...pack.readFirst.map((file) => file.path), ...pack.files.filter((file) => file.category === "test").map((file) => file.path)]).slice(
       0,
       14
