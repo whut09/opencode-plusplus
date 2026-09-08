@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseCommandLine } from "../../core/safe-command.js";
+import { classifyCommandFinding, summarizeCommandFindings } from "./command-permission.js";
 import { checkProtectedPath, normalizeToolPath } from "./sidecar-path-guard.js";
 import type { OpenCodeSidecarCommandCheckResult, OpenCodeSidecarCommandFinding } from "./sidecar.js";
 
@@ -11,14 +12,71 @@ export function checkSidecarCommand(repo = ".", input: { command?: string; paths
   const findings: OpenCodeSidecarCommandFinding[] = [];
   if (command) {
     findings.push(...checkDangerousCommand(command));
+    findings.push(...checkApprovalRequiredCommand(command));
     findings.push(...checkScriptCommand(root, command));
     findings.push(...checkMakeCommand(root, command));
     findings.push(...checkPyprojectCommand(root, command));
-    for (const pathFromCommand of extractPathLikeArguments(command)) findings.push(...checkProtectedPath(pathFromCommand));
+    for (const pathFromCommand of extractPathLikeArguments(command)) {
+      findings.push(...checkExternalPath(root, pathFromCommand));
+      findings.push(...checkProtectedPath(pathFromCommand));
+    }
   }
-  for (const filePath of paths) findings.push(...checkProtectedPath(filePath));
+  for (const filePath of paths) {
+    findings.push(...checkExternalPath(root, filePath));
+    findings.push(...checkProtectedPath(filePath));
+  }
   const unique = dedupeFindings(findings);
-  return { repo: root, command, paths, allowed: !unique.some((finding) => finding.severity === "blocker"), findings: unique };
+  const classified = unique.map((finding) => ({ ...finding, ...classifyCommandFinding(finding) }));
+  return { repo: root, command, paths, ...summarizeCommandFindings(classified), findings: classified };
+}
+
+function checkApprovalRequiredCommand(command: string): OpenCodeSidecarCommandFinding[] {
+  const patterns: Array<[RegExp, string, string]> = [
+    [
+      /(?:^|\s)(?:npm|pnpm|yarn|bun|npx)(?:\.cmd)?\s+(?:install|i|add|remove|uninstall|update|publish|exec)\b/i,
+      "Package or registry operation requires user approval 包安装或 registry 操作需要用户授权",
+      "Let OpenCode show its native permission prompt and approve only the intended package operation. 让 OpenCode 原生权限弹窗处理，只批准明确的包操作。"
+    ],
+    [
+      /(?:^|\s)(?:python(?:\.exe)?\s+-m\s+pip|pip3?|uv)\s+(?:install|sync|add)\b/i,
+      "Python environment or package operation requires user approval Python 环境或包操作需要用户授权",
+      "Let OpenCode show its native permission prompt before changing the environment. 先由 OpenCode 原生权限弹窗确认环境变更。"
+    ],
+    [
+      /(?:^|\s)(?:cargo)\s+(?:add|install|update)\b/i,
+      "Rust dependency operation requires user approval Rust 依赖操作需要用户授权",
+      "Approve through OpenCode only after checking the dependency and lockfile impact. 先检查依赖和锁文件影响，再通过 OpenCode 批准。"
+    ],
+    [
+      /(?:^|\s)(?:go)\s+(?:get|install)\b/i,
+      "Go dependency operation requires user approval Go 依赖操作需要用户授权",
+      "Approve through OpenCode only after checking the module change. 先检查模块变更，再通过 OpenCode 批准。"
+    ],
+    [
+      /(?:^|\s)git\s+(?:push|fetch|pull|clone|submodule)\b/i,
+      "Network or remote Git operation requires user approval 网络或远程 Git 操作需要用户授权",
+      "Let OpenCode ask for consent; OpenCode++ does not grant remote-operation consent. 由 OpenCode 请求用户同意，OpenCode++ 不代替授权。"
+    ],
+    [
+      /(?:^|\s)(?:curl|wget|invoke-webrequest|start-bitstransfer)(?:\.exe)?\b/i,
+      "Network download requires user approval 网络下载需要用户授权",
+      "Approve through OpenCode only after checking the destination and content. 先检查目标和内容，再通过 OpenCode 批准。"
+    ]
+  ];
+  return patterns.flatMap(([pattern, message, doInstead]) =>
+    pattern.test(command)
+      ? [
+          {
+            kind: "approval_required",
+            severity: "warning",
+            message,
+            doInstead,
+            evidence: [command],
+            rule: "host-permission"
+          }
+        ]
+      : []
+  );
 }
 
 function checkDangerousCommand(command: string): OpenCodeSidecarCommandFinding[] {
@@ -202,6 +260,26 @@ function extractPathLikeArguments(command: string): string[] {
   const parsed = parseCommandSafely(command);
   if (!parsed) return [];
   return parsed.args.filter((arg) => /(^\.?\.?\/|\\|\.env|AGENTS\.md|\.agent-context|node_modules|dist\/|coverage\/)/i.test(arg)).map(normalizeToolPath);
+}
+
+function checkExternalPath(root: string, filePath: string): OpenCodeSidecarCommandFinding[] {
+  const normalized = normalizeToolPath(filePath);
+  const isAbsolute = path.isAbsolute(normalized) || path.win32.isAbsolute(normalized);
+  if (!normalized || !isAbsolute) return [];
+  const resolved = path.isAbsolute(normalized) ? path.resolve(normalized) : path.win32.resolve(normalized);
+  const relative = path.relative(root, resolved);
+  const outside = relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+  if (!outside) return [];
+  return [
+    {
+      kind: "external_path",
+      severity: "warning",
+      message: `External directory path requires user approval 外部目录路径需要用户授权: ${normalized}`,
+      doInstead: "Let OpenCode request external_directory permission before accessing this path. 让 OpenCode 原生 external_directory 权限先请求授权。",
+      evidence: [normalized],
+      rule: "external-directory"
+    }
+  ];
 }
 
 function dedupeFindings(findings: OpenCodeSidecarCommandFinding[]): OpenCodeSidecarCommandFinding[] {
