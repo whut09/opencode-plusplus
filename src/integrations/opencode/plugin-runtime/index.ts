@@ -343,9 +343,10 @@ export async function createOpenCodePlusPlusSidecar(
         taskId: null,
         contextFingerprint: null,
         initialWorkingTreeHash: current,
-        currentWorkingTreeHash: current,
-        editBoundary: { allowedEditGlobs: [], avoidEditGlobs: [] },
-        requiredTests: [],
+         currentWorkingTreeHash: current,
+         editBoundary: { allowedEditGlobs: [], avoidEditGlobs: [] },
+         boundaryRevision: 1,
+         requiredTests: [],
         lastEventKey: null,
         sourceChanged: false,
         updatedAt: new Date().toISOString()

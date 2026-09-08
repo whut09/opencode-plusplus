@@ -5,6 +5,7 @@ import type {
   PluginDashboardArgs,
   PluginEvaluateArgs,
   PluginFeedbackArgs,
+  PluginHumanReviewArgs,
   PluginHarnessTaskType,
   PluginInterventionsArgs,
   PluginNextArgs,
@@ -93,6 +94,23 @@ export function parseFeedbackArgs(args: unknown): PluginFeedbackArgs | string {
     ...(file ? { file } : {}),
     ...(retrievalId ? { retrievalId } : {}),
     ...(interventionId ? { interventionId } : {})
+  };
+}
+
+export function parseHumanReviewArgs(args: unknown): PluginHumanReviewArgs | string {
+  const record = asRecord(args);
+  const action = record.action === "approve" || record.action === "reject" ? record.action : undefined;
+  if (!action) return 'human review action must be "approve" or "reject".';
+  if (record.confirmed !== true) return "human review requires confirmed=true for an explicit user decision.";
+  const taskId = readOptionalString(record.taskId);
+  const sessionId = readOptionalSessionId(record.sessionId);
+  const requestId = readOptionalString(record.requestId);
+  return {
+    action,
+    confirmed: true,
+    ...(taskId ? { taskId } : {}),
+    ...(sessionId ? { sessionId } : {}),
+    ...(requestId ? { requestId } : {})
   };
 }
 

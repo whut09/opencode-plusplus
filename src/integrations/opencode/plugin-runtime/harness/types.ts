@@ -10,6 +10,7 @@ export const OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES = [
   "opencode_plusplus_context_status",
   "opencode_plusplus_interventions",
   "opencode_plusplus_context_feedback",
+  "opencode_plusplus_human_review",
   "opencode_plusplus_evaluate",
   "opencode_plusplus_next"
 ] as const;
@@ -19,6 +20,7 @@ export type OpenCodePlusPlusPluginToolName = (typeof OPENCODE_PLUSPLUS_PLUGIN_TO
 export type PluginHarnessTaskType = "bugfix" | "feature" | "refactor";
 import type { InterventionStatus } from "../../../../harness/types.js";
 import type { ResolutionEvidence } from "../../../../harness/types.js";
+import type { HumanReviewRequest } from "../../../../harness/types.js";
 import type { VerificationPlan } from "../../../../core/verification/types.js";
 
 export interface PluginPrepareArgs {
@@ -49,6 +51,14 @@ export interface PluginFeedbackArgs {
   retrievalId?: string;
   interventionId?: string;
   label: "useful" | "not-useful" | "outdated" | "inaccurate" | "incomplete" | "wrong-version" | "wrong-example" | "irrelevant";
+}
+
+export interface PluginHumanReviewArgs {
+  taskId?: string;
+  sessionId?: string | null;
+  requestId?: string;
+  action: "approve" | "reject";
+  confirmed: boolean;
 }
 
 export interface PluginContextSearchArgs {
@@ -116,13 +126,14 @@ export interface PluginWorkflowState {
   initialWorkingTreeHash: string;
   currentWorkingTreeHash: string;
   editBoundary: { allowedEditGlobs: string[]; avoidEditGlobs: string[] };
+  boundaryRevision: number;
   requiredTests: string[];
   lastEventKey: string | null;
   sourceChanged: boolean;
   updatedAt: string;
 }
 
-export type PluginHarnessToolKind = "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "feedback";
+export type PluginHarnessToolKind = "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "feedback" | "human-review";
 export type PluginTaskIdSource = "argument" | "session" | "created" | "none";
 
 export type PluginPerformanceStatus = "completed" | "timeout";
@@ -239,6 +250,7 @@ export interface PluginHarnessResult {
   performance?: PluginPerformance;
   verification?: VerificationPlan;
   interventions?: PluginInterventionSnapshot;
+  humanReview?: HumanReviewRequest;
   actionSummary?: PluginActionSummary;
   compactStatus?: import("./compact-status.js").PluginCompactStatus;
   displayMode?: import("./compact-status.js").PluginHarnessDisplayMode;
@@ -249,6 +261,7 @@ export type PluginPrepareResult = PluginHarnessResult;
 export type PluginRetrieveResult = PluginHarnessResult;
 export type PluginEvaluateResult = PluginHarnessResult;
 export type PluginNextResult = PluginHarnessResult;
+export type PluginHumanReviewResult = PluginHarnessResult;
 
 export interface PluginEvaluateState {
   schemaVersion: string;
@@ -266,11 +279,13 @@ export interface PluginEvaluateState {
   mustInspect: string[];
   allowedEditGlobs: string[];
   avoidEditGlobs: string[];
+  boundaryRevision?: number;
   artifacts: string[];
   nextAction: string;
   summary: string;
   updatedAt: string;
   interventions?: PluginInterventionSnapshot;
+  humanReview?: HumanReviewRequest;
   verification?: VerificationPlan;
   visualization?: import("./visualization.js").PluginHarnessVisualization;
 }

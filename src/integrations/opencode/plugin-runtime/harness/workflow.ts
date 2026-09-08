@@ -28,6 +28,7 @@ export function initializeWorkflowState(root: string, sessionId: string): Plugin
     initialWorkingTreeHash: current,
     currentWorkingTreeHash: current,
     editBoundary: { allowedEditGlobs: [], avoidEditGlobs: [] },
+    boundaryRevision: 1,
     requiredTests: [],
     lastEventKey: null,
     sourceChanged: false,
