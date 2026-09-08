@@ -234,7 +234,13 @@ export async function createOpenCodePlusPlusSidecar(
       ),
       opencode_plusplus_human_review: desktopHarnessTool(
         "Resolve a persisted OpenCode++ human review request. Approve only a boundary expansion after inspecting the requested files; this updates the current task boundary and resumes without prepare.",
-        { taskId: { type: "string" }, sessionId: { type: "string" }, requestId: { type: "string" }, action: { type: "string" }, confirmed: { type: "boolean" } },
+        {
+          taskId: { type: "string" },
+          sessionId: { type: "string" },
+          requestId: { type: "string" },
+          action: { type: "string" },
+          confirmed: { type: "boolean" }
+        },
         (args) => executeHumanReviewTool(context.directory, args, context, recorder)
       ),
       opencode_plusplus_evaluate: desktopHarnessTool(
@@ -349,10 +355,10 @@ export async function createOpenCodePlusPlusSidecar(
         taskId: null,
         contextFingerprint: null,
         initialWorkingTreeHash: current,
-         currentWorkingTreeHash: current,
-         editBoundary: { allowedEditGlobs: [], avoidEditGlobs: [] },
-         boundaryRevision: 1,
-         requiredTests: [],
+        currentWorkingTreeHash: current,
+        editBoundary: { allowedEditGlobs: [], avoidEditGlobs: [] },
+        boundaryRevision: 1,
+        requiredTests: [],
         lastEventKey: null,
         sourceChanged: false,
         updatedAt: new Date().toISOString()

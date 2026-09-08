@@ -140,7 +140,8 @@ function copyForReason(
     return {
       title: "OpenCode++ needs permission to expand task scope.",
       explanation: `${explanation} Current: ${currentBoundary.join(", ") || "no explicit path"}. Requested: ${requestedBoundary.join(", ") || "new task paths"}.`,
-      requiredUserAction: 'Review the requested files and explicitly approve the scope expansion with opencode_plusplus_human_review action "approve" and confirmed true.',
+      requiredUserAction:
+        'Review the requested files and explicitly approve the scope expansion with opencode_plusplus_human_review action "approve" and confirmed true.',
       suggestedCommands,
       resumeCondition: "After approval, OpenCode++ increments the boundary revision and continues from the current task state; no prepare step is needed."
     };
@@ -176,7 +177,8 @@ function copyForReason(
     return {
       title: "OpenCode++ needs the repository state clarified.",
       explanation,
-      requiredUserAction: "Resolve the listed repository ambiguity, such as a stale context, unresolved diff, or conflicting state, then continue from the current phase.",
+      requiredUserAction:
+        "Resolve the listed repository ambiguity, such as a stale context, unresolved diff, or conflicting state, then continue from the current phase.",
       suggestedCommands,
       resumeCondition: "OpenCode++ resumes when the repository state and its persisted evidence agree on the same working tree."
     };

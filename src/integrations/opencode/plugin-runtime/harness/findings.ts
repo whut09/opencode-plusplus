@@ -4,11 +4,7 @@ import type { PolicyEngineReport } from "../../../../harness/verification-plane/
 import type { OpenCodeSidecarGuardStackSummary } from "../../sidecar.js";
 import { isTestSelectorCommand } from "../../../../core/test-command.js";
 
-export function evaluateFindings(input: {
-  policy: PolicyEngineReport;
-  guardStack: OpenCodeSidecarGuardStackSummary;
-  additionalFindings?: string[];
-}): string[] {
+export function evaluateFindings(input: { policy: PolicyEngineReport; guardStack: OpenCodeSidecarGuardStackSummary; additionalFindings?: string[] }): string[] {
   return unique([
     ...input.policy.findings
       .filter((finding) => finding.status === "failed" || finding.status === "missing")

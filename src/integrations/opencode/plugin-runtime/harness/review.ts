@@ -1,11 +1,7 @@
 import { readJsonDiagnostic, updateJsonAtomic } from "../../../../core/atomic-store.js";
 import type { TaskRunManifest } from "../../../../outputs/task-run.js";
 import { createPluginHarnessResult } from "./protocol.js";
-import {
-  humanReviewRequestPath,
-  readHumanReviewRequest,
-  updateHumanReviewRequest
-} from "./human-review.js";
+import { humanReviewRequestPath, readHumanReviewRequest, updateHumanReviewRequest } from "./human-review.js";
 import { matchesPathGlob } from "./edit-boundary.js";
 import { readPluginEvaluateState, resolvePluginTask, taskRunExists, taskRunManifestPath, writePluginEvaluateState } from "./session.js";
 import type { PluginHumanReviewArgs, PluginHumanReviewResult } from "./types.js";
@@ -21,9 +17,17 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
 
   const sessionId = resolved.sessionId;
   const request = readHumanReviewRequest(root, resolved.taskId, sessionId);
-  if (!request) return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_NOT_FOUND", "No pending OpenCode++ human review request exists for this task.");
+  if (!request)
+    return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_NOT_FOUND", "No pending OpenCode++ human review request exists for this task.");
   if (args.requestId && args.requestId !== request.requestId) {
-    return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_REQUEST_MISMATCH", "The supplied human review request is not the current persisted request.", request);
+    return reviewFailure(
+      root,
+      resolved.taskId,
+      sessionId,
+      "HUMAN_REVIEW_REQUEST_MISMATCH",
+      "The supplied human review request is not the current persisted request.",
+      request
+    );
   }
   if (request.status !== "pending") {
     return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_ALREADY_RESOLVED", `The human review request is already ${request.status}.`, request);
@@ -37,7 +41,16 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
       resumeCondition: "This task remains paused until a new task boundary or implementation decision is supplied.",
       now: new Date().toISOString()
     });
-    return reviewResult(root, resolved.taskId, sessionId, resolved.source, rejected, "The requested scope expansion was declined; the task remains paused.", true, "human-review");
+    return reviewResult(
+      root,
+      resolved.taskId,
+      sessionId,
+      resolved.source,
+      rejected,
+      "The requested scope expansion was declined; the task remains paused.",
+      true,
+      "human-review"
+    );
   }
 
   if (request.reasonCode !== "BOUNDARY_EXPANSION_REQUIRED") {
@@ -53,7 +66,14 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
 
   const manifestResult = readJsonDiagnostic<TaskRunManifest>(taskRunManifestPath(root, resolved.taskId));
   if (manifestResult.status !== "ok") {
-    return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_STATE_UNAVAILABLE", "The task manifest is unavailable, so the boundary cannot be revised safely.", request);
+    return reviewFailure(
+      root,
+      resolved.taskId,
+      sessionId,
+      "HUMAN_REVIEW_STATE_UNAVAILABLE",
+      "The task manifest is unavailable, so the boundary cannot be revised safely.",
+      request
+    );
   }
   const manifest = manifestResult.value;
   const requested = [...new Set([...(request.requestedBoundary ?? []), ...request.affectedFiles])].sort((left, right) => left.localeCompare(right));
@@ -97,11 +117,21 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     boundaryRevision: nextRevision,
     now: new Date().toISOString()
   });
-  return reviewResult(root, resolved.taskId, sessionId, resolved.source, resumed, "Scope expansion approved; the existing task state was resumed without prepare.", false, "evaluate", {
-    allowedEditGlobs,
-    avoidEditGlobs: nextManifest.avoidEditGlobs ?? [],
-    boundaryRevision: nextRevision
-  });
+  return reviewResult(
+    root,
+    resolved.taskId,
+    sessionId,
+    resolved.source,
+    resumed,
+    "Scope expansion approved; the existing task state was resumed without prepare.",
+    false,
+    "evaluate",
+    {
+      allowedEditGlobs,
+      avoidEditGlobs: nextManifest.avoidEditGlobs ?? [],
+      boundaryRevision: nextRevision
+    }
+  );
 }
 
 function reviewResult(
@@ -137,10 +167,7 @@ function reviewResult(
     allowedEditGlobs,
     avoidEditGlobs,
     boundaryRevision,
-    artifacts: [
-      ".agent-context/sidecar/plugin-evaluate.json",
-      path.relative(root, humanReviewRequestPath(root, taskId, sessionId)).replaceAll("\\", "/")
-    ],
+    artifacts: [".agent-context/sidecar/plugin-evaluate.json", path.relative(root, humanReviewRequestPath(root, taskId, sessionId)).replaceAll("\\", "/")],
     nextAction,
     interventions,
     humanReview,
@@ -185,7 +212,13 @@ function reviewFailure(
     ok: false,
     tool: "human-review",
     summary: `OpenCode++ human review could not continue: ${message}`,
-    error: { code, message, attribution: "opencode-plusplus", retryable: false, nextStep: "Inspect the persisted human review request and select a valid user action." },
+    error: {
+      code,
+      message,
+      attribution: "opencode-plusplus",
+      retryable: false,
+      nextStep: "Inspect the persisted human review request and select a valid user action."
+    },
     taskId,
     sessionId,
     taskIdSource: "argument",

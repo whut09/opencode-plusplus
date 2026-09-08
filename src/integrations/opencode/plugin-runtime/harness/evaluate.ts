@@ -115,7 +115,10 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
           reasonCode: reviewReason,
           decision,
           boundaryAssessment,
-          findings: [...policy.findings.filter((finding) => finding.status === "failed" || finding.status === "missing").map((finding) => finding.message), ...loop.runtime.missingEvidence],
+          findings: [
+            ...policy.findings.filter((finding) => finding.status === "failed" || finding.status === "missing").map((finding) => finding.message),
+            ...loop.runtime.missingEvidence
+          ],
           guardError: guardStack.error
         }),
         affectedFiles: boundaryAssessment.expansionRequired ? boundaryAssessment.outsideAllowed : policy.changedFiles,
@@ -129,9 +132,7 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
   const findings = evaluateFindings({
     policy,
     guardStack,
-    additionalFindings: boundaryAssessment.expansionRequired
-      ? [`Task boundary expansion required for: ${boundaryAssessment.outsideAllowed.join(", ")}`]
-      : []
+    additionalFindings: boundaryAssessment.expansionRequired ? [`Task boundary expansion required for: ${boundaryAssessment.outsideAllowed.join(", ")}`] : []
   });
   const missingEvidence = evaluateMissingEvidence({ loop, policy });
   const blocking = Boolean(loop.decisions[0]?.blocking) || !policy.passed || !guardStack.passed || Boolean(humanReview);
@@ -229,7 +230,9 @@ function reviewExplanation(input: {
   if (input.reasonCode === "BOUNDARY_EXPANSION_REQUIRED") {
     return `The current task boundary does not include ${input.boundaryAssessment.outsideAllowed.join(", ")}. The requested files are outside the prepared edit surface, but they are not classified as protected paths.`;
   }
-  if (input.reasonCode === "NO_EXECUTABLE_TEST") return "No runnable test command is configured; source or configuration changes require current executable test evidence for this task.";
-  if (input.reasonCode === "AMBIGUOUS_REPOSITORY_STATE") return `The OpenCode++ guard stack could not establish a reliable repository state: ${input.guardError ?? "guard evaluation failed"}.`;
+  if (input.reasonCode === "NO_EXECUTABLE_TEST")
+    return "No runnable test command is configured; source or configuration changes require current executable test evidence for this task.";
+  if (input.reasonCode === "AMBIGUOUS_REPOSITORY_STATE")
+    return `The OpenCode++ guard stack could not establish a reliable repository state: ${input.guardError ?? "guard evaluation failed"}.`;
   return input.findings[0] ?? `The current decision is ${input.decision}, and OpenCode++ cannot prove a safe automatic continuation.`;
 }

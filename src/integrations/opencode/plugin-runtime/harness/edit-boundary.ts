@@ -18,9 +18,7 @@ export function assessPluginEditBoundary(changedFiles: string[], boundary: Plugi
   const normalizedChanged = unique(changedFiles);
   const allowed = unique(boundary.allowedEditGlobs);
   const avoid = unique(boundary.avoidEditGlobs);
-  const outsideAllowed = allowed.length
-    ? normalizedChanged.filter((file) => !allowed.some((glob) => matchesPathGlob(file, glob)))
-    : [];
+  const outsideAllowed = allowed.length ? normalizedChanged.filter((file) => !allowed.some((glob) => matchesPathGlob(file, glob))) : [];
   const avoided = normalizedChanged.filter((file) => avoid.some((glob) => matchesPathGlob(file, glob)));
   return {
     boundaryRevision: boundary.revision,

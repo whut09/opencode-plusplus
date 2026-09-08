@@ -126,7 +126,12 @@ function humanReviewForPluginFailure(root: string, taskId: string | null, sessio
         })
       : buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: message });
   } catch {
-    return buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: `${message} The request store was not writable or readable.` });
+    return buildHumanReviewRequest({
+      taskId,
+      sessionId,
+      reasonCode: "PLUGIN_FAILURE",
+      explanation: `${message} The request store was not writable or readable.`
+    });
   }
 }
 

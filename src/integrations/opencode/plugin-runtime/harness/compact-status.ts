@@ -94,17 +94,7 @@ export function renderPluginCompactStatus(result: PluginHarnessResult): string {
     lines.push("", "Next", status.next);
   } else if (status.transition === "human-review-required") {
     if (status.humanReview) {
-      lines.push(
-        "",
-        "Need you",
-        status.humanReview.title,
-        "",
-        "Why",
-        status.humanReview.explanation,
-        "",
-        "Do",
-        status.humanReview.requiredUserAction
-      );
+      lines.push("", "Need you", status.humanReview.title, "", "Why", status.humanReview.explanation, "", "Do", status.humanReview.requiredUserAction);
       if (status.humanReview.suggestedCommands.length) lines.push("", "Suggested", ...status.humanReview.suggestedCommands.map((command) => `• ${command}`));
       if (status.humanReview.affectedFiles.length) lines.push("", "Affected", ...status.humanReview.affectedFiles.map((file) => `• ${file}`));
       lines.push("", "Continue", status.humanReview.resumeCondition);
