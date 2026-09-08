@@ -10,6 +10,37 @@ export type HarnessDecisionAction =
   | "no-progress"
   | "max-loops-reached";
 
+export type HumanReviewReasonCode =
+  | "NO_EXECUTABLE_TEST"
+  | "BOUNDARY_EXPANSION_REQUIRED"
+  | "EXTERNAL_SIDE_EFFECT"
+  | "UNVERIFIABLE_RESULT"
+  | "PLUGIN_FAILURE"
+  | "AMBIGUOUS_REPOSITORY_STATE";
+
+export type HumanReviewStatus = "pending" | "approved" | "rejected" | "resumed" | "resolved";
+
+export interface HumanReviewRequest {
+  schemaVersion: "opencode-plusplus.human-review.v1";
+  revision?: number;
+  requestId: string;
+  taskId: string | null;
+  sessionId: string | null;
+  reasonCode: HumanReviewReasonCode;
+  title: string;
+  explanation: string;
+  requiredUserAction: string;
+  suggestedCommands: string[];
+  affectedFiles: string[];
+  resumeCondition: string;
+  status: HumanReviewStatus;
+  currentBoundary?: string[];
+  requestedBoundary?: string[];
+  boundaryRevision?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ArtifactRef {
   path: string;
   kind?: "context" | "trace" | "policy" | "guard" | "loop" | "decision" | "report" | "diff" | "checkpoint" | "run" | "other";
@@ -46,6 +77,7 @@ export interface HarnessDecision {
   requiredCommands: string[];
   artifacts: ArtifactRef[];
   interventionIds?: string[];
+  humanReview?: HumanReviewRequest;
   arbitration?: HarnessDecisionArbitration;
 }
 
