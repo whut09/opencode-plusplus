@@ -240,6 +240,8 @@ export interface PluginHarnessResult {
   verification?: VerificationPlan;
   interventions?: PluginInterventionSnapshot;
   actionSummary?: PluginActionSummary;
+  compactStatus?: import("./compact-status.js").PluginCompactStatus;
+  displayMode?: import("./compact-status.js").PluginHarnessDisplayMode;
   visualization?: import("./visualization.js").PluginHarnessVisualization;
 }
 

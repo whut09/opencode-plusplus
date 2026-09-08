@@ -1,6 +1,6 @@
 import path from "node:path";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
-import { renderPluginCompactStatus, type PluginHarnessDisplayMode } from "./compact-status.js";
+import { buildPluginCompactStatus, renderPluginCompactStatus, type PluginHarnessDisplayMode } from "./compact-status.js";
 import {
   emptyPluginInterventions,
   type PluginActionSummary,
@@ -138,10 +138,13 @@ export function renderPluginHarnessResult(result: PluginHarnessResult, options: 
   };
   persistPluginHarnessVisualization(withSummary.repository, visualization);
   const displayMode = options.displayMode ?? (withSummary.tool === "dashboard" ? "detailed" : "compact");
+  const compactStatus = buildPluginCompactStatus(withSummary);
   const dashboard = renderPluginHarnessVisualization(visualization);
   const humanReadable = displayMode === "detailed" ? detailedHumanReadableSummary(withSummary) : renderPluginCompactStatus(withSummary);
   const payload = {
     ...withSummary,
+    compactStatus,
+    displayMode,
     humanReadable,
     ...(withSummary.tool === "dashboard" || withSummary.decision === "human-review" ? { dashboard } : {})
   };

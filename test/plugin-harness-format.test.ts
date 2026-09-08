@@ -85,6 +85,8 @@ test("plugin harness renderers expose the unified Desktop protocol fields", () =
     assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ✗ Repair required/);
     assert.doesNotMatch(parsed.humanReadable ?? "", /OpenCode\+\+ Harness Dashboard/);
     assert.doesNotMatch(parsed.humanReadable ?? "", /Prevented:\s*none/);
+    assert.equal(parsed.displayMode, "compact");
+    assert.equal(parsed.compactStatus?.label, "Repair required");
     assert.ok(parsed.actionSummary);
     assert.match(parsed.summary, /OpenCode\+\+ recorded: observed=/);
   }
@@ -191,6 +193,8 @@ test("Desktop prints OpenCode++ Harness status to the app log and status toast",
 
 test("explicit dashboard rendering retains the detailed view", () => {
   const parsed = JSON.parse(renderPluginHarnessResult({ ...base, tool: "dashboard" })) as PluginHarnessResult;
+  assert.equal(parsed.displayMode, "detailed");
+  assert.equal(parsed.compactStatus?.transition, "repair-required");
   assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ Harness Dashboard/);
   assert.match(parsed.dashboard ?? "", /Decision basis:/);
   assert.doesNotMatch(parsed.humanReadable ?? "", /Repair required/);
