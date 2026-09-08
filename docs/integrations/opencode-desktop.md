@@ -49,6 +49,12 @@ This is an explainability view of recorded system facts and deterministic decisi
 
 The model still performs the actual reading, editing, and command execution. OpenCode++ provides the context, rules, evidence, and decision tools. It does not start a second model or invoke its CLI from the Desktop plugin.
 
+## Permission And Guard Separation
+
+The verified OpenCode Desktop baseline is `@opencode-ai/plugin` `1.18.18`. The installed OpenCode++ primary agent uses only that version's supported permission keys: `edit`, `bash`, `webfetch`, `doom_loop`, and `external_directory`. It does not add unsupported `read` or `search` fields, and it does not override ordinary `edit` behavior.
+
+OpenCode owns user consent. OpenCode++ owns task and repository semantics. A command result is `allowed`, `approval-required`, or `policy-blocked`: package/network/external-path operations are handed to OpenCode's native permission prompt, while destructive commands, protected paths, unknown project commands, and evidence tampering remain deterministic plugin blocks. OpenCode automatic approval cannot bypass a `policy-blocked` result. See [Permission And Guard Boundaries](../reference/permission-boundaries.md).
+
 ### Switching Modes And Diagnosing A Stuck Turn
 
 The mode picker selects the agent for the **next message**. It does not cancel a response that is already running. If a turn was started in OpenCode++ and you change the picker to Build while that response is still running, the existing response may continue to print OpenCode++ results. Click the square **Stop** button, keep Build selected, and send a new message. From that new Build turn onward, OpenCode++ command guards, evidence hooks, compacting context, idle verification, and Harness tools stay inactive for that session turn. The conversation still contains older OpenCode++ text, so start a new OpenCode session as well when you need a completely clean Build transcript.
