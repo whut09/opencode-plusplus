@@ -94,7 +94,7 @@ test("UX baseline B: failed verification and repair record two evaluation cycles
   }
 });
 
-test("UX baseline C: docs-only edits avoid a full-suite command but still expose current loop cost", async () => {
+test("UX baseline C: docs-only edits avoid unnecessary verification", async () => {
   const fixture = await createHarnessUxFixture({ scenarioId: "docs-only", withTests: true, withCheck: true, docsOnly: true });
   try {
     const prepared = result(await callHarnessTool(fixture, "prepare", { task: "update documentation", type: "bugfix" }));
@@ -116,13 +116,13 @@ test("UX baseline C: docs-only edits avoid a full-suite command but still expose
       false
     );
     assert.equal(evaluated.requiredCommands.includes("npm run test"), false);
-    assert.equal(evaluated.decision, "run-tests");
-    assert.equal(next.nextAction, "run-tests");
+    assert.equal(evaluated.decision, "ready-for-review");
+    assert.equal(next.nextAction, "evaluate");
     assert.equal(metrics.harnessToolCalls, 5);
     assert.equal(metrics.modelVisibleHarnessSteps, 5);
     assert.equal(metrics.verificationCommands, 0);
     assert.equal(metrics.humanReviews, 0);
-    assert.equal(metrics.finalDecision, "run-tests", JSON.stringify({ evaluated, next, metrics }));
+    assert.equal(metrics.finalDecision, "ready-for-review", JSON.stringify({ evaluated, next, metrics }));
   } finally {
     cleanupHarnessUxFixture(fixture);
   }
