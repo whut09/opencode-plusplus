@@ -95,17 +95,7 @@ export function createPluginHarnessError(
   error: NonNullable<PluginHarnessResult["error"]> = { code: "HARNESS_ERROR", message }
 ): PluginHarnessResult {
   const stopForReview = error.retryable === false;
-  const humanReview = stopForReview
-    ? taskId || sessionId
-      ? upsertHumanReviewRequest(root, {
-          taskId,
-          sessionId,
-          reasonCode: "PLUGIN_FAILURE",
-          explanation: message,
-          now: new Date().toISOString()
-        })
-      : buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: message })
-    : undefined;
+  const humanReview = stopForReview ? humanReviewForPluginFailure(root, taskId, sessionId, message) : undefined;
   return createPluginHarnessResult(root, {
     ok: false,
     tool,
@@ -122,6 +112,22 @@ export function createPluginHarnessError(
     ...(humanReview ? { humanReview } : {}),
     artifacts: humanReview ? [path.relative(root, humanReviewRequestPath(root, taskId, sessionId)).replaceAll("\\", "/")] : []
   });
+}
+
+function humanReviewForPluginFailure(root: string, taskId: string | null, sessionId: string | null, message: string) {
+  try {
+    return taskId || sessionId
+      ? upsertHumanReviewRequest(root, {
+          taskId,
+          sessionId,
+          reasonCode: "PLUGIN_FAILURE",
+          explanation: message,
+          now: new Date().toISOString()
+        })
+      : buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: message });
+  } catch {
+    return buildHumanReviewRequest({ taskId, sessionId, reasonCode: "PLUGIN_FAILURE", explanation: `${message} The request store was not writable or readable.` });
+  }
 }
 
 export interface RenderPluginHarnessResultOptions {

@@ -17,7 +17,7 @@ export async function retrievePluginHarnessContext(root: string, args: PluginRet
     return createPluginHarnessError(
       root,
       "retrieve",
-      `retrieve exceeded the ${3000}ms Desktop target; retry with a smaller topK or after context generation settles.`,
+      `retrieve exceeded the ${3000}ms Desktop target. OpenCode++ stopped this turn and recorded the plugin failure for review.`,
       null,
       args.sessionId ?? null,
       "none",

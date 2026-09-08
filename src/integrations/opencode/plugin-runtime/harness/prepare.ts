@@ -19,7 +19,7 @@ export async function preparePluginHarnessTask(root: string, args: PluginPrepare
     return createPluginHarnessError(
       root,
       "prepare",
-      `prepare exceeded the ${PLUGIN_STAGE_TARGETS.prepare}ms Desktop target; retry after context generation settles.`,
+      `prepare exceeded the ${PLUGIN_STAGE_TARGETS.prepare}ms Desktop target. OpenCode++ stopped this turn and recorded the plugin failure for review.`,
       null,
       args.sessionId ?? null,
       "none",

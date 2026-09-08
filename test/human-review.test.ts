@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -11,6 +11,7 @@ import {
   updateHumanReviewRequest,
   upsertHumanReviewRequest
 } from "../src/integrations/opencode/plugin-runtime/harness/human-review.js";
+import { createPluginHarnessError } from "../src/integrations/opencode/plugin-runtime/harness/protocol.js";
 
 test("human review requests explain boundary expansion and remain deterministic", () => {
   const first = buildHumanReviewRequest({
@@ -73,6 +74,25 @@ test("human review requests use atomic persistence and idempotent upsert", () =>
     assert.equal(approved.status, "approved");
     assert.equal(approved.boundaryRevision, 2);
     assert.equal(updateHumanReviewRequest(root, "fix-auth", "session-1", first.requestId, { status: "resumed" }).status, "approved");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("plugin failures remain diagnosable when the review store is corrupt", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "opencode-plusplus-human-review-corrupt-"));
+  try {
+    const requestPath = humanReviewRequestPath(root, "task-1", "session-1");
+    writeFileSync(requestPath, "{broken", "utf8");
+    const result = createPluginHarnessError(root, "evaluate", "plugin state could not be read", "task-1", "session-1", "argument", undefined, {
+      code: "PLUGIN_STATE_CORRUPT",
+      message: "plugin state could not be read",
+      attribution: "opencode-plusplus",
+      retryable: false
+    });
+    assert.equal(result.decision, "human-review");
+    assert.equal(result.humanReview?.reasonCode, "PLUGIN_FAILURE");
+    assert.match(result.humanReview?.explanation ?? "", /plugin state could not be read/i);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

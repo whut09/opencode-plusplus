@@ -38,7 +38,7 @@ export async function evaluatePluginHarness(root: string, args: PluginEvaluateAr
   const staged = await runPluginStage("evaluate", () => activeEvaluation);
   if (staged.status === "timeout") {
     const targetMs = PLUGIN_STAGE_TARGETS.evaluate;
-    const message = `evaluate exceeded the ${targetMs}ms Desktop target. Do not retry, sleep, or poll in this turn; stop at human-review and inspect .agent-context/sidecar plus OpenCode logs.`;
+    const message = `evaluate exceeded the ${targetMs}ms Desktop target. OpenCode++ stopped this turn and recorded the plugin failure; inspect .agent-context/sidecar plus OpenCode logs instead of sleeping or polling.`;
     return createPluginHarnessError(
       root,
       "evaluate",
@@ -52,7 +52,7 @@ export async function evaluatePluginHarness(root: string, args: PluginEvaluateAr
         message,
         attribution: "opencode-plusplus",
         retryable: false,
-        nextStep: "Stop this turn at human-review. Do not use Start-Sleep, sleep, or a polling loop."
+        nextStep: "Inspect the persisted plugin failure and OpenCode logs; do not use Start-Sleep, sleep, or a polling loop."
       }
     );
   }
