@@ -143,7 +143,7 @@ export function notifyPluginInterventionSignals(
   tool: "prepare" | "retrieve" | "evaluate" | "next" | "dashboard",
   recorder?: OpenCodeSidecarRecorder
 ): number {
-  if (!snapshot || tool === "prepare" || tool === "retrieve") return 0;
+  if (!snapshot || tool === "prepare" || tool === "retrieve" || tool === "dashboard") return 0;
   const scope = path.resolve(context.directory);
   const transition = transitionForInterventions(snapshot);
   if (!transition) return 0;

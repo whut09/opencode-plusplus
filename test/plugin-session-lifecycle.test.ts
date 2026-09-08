@@ -82,6 +82,8 @@ test("intervention notifications emit one prioritized transition and deduplicate
 
   assert.equal(notifyPluginInterventionSignals(context, snapshot, "prepare"), 0);
   assert.equal(toastCalls.length, 0);
+  assert.equal(notifyPluginInterventionSignals(context, snapshot, "dashboard"), 0);
+  assert.equal(toastCalls.length, 0);
   assert.equal(notifyPluginInterventionSignals(context, snapshot, "evaluate"), 1);
   assert.equal(notifyPluginInterventionSignals(context, snapshot, "evaluate"), 0);
   assert.equal(toastCalls.length, 1);
