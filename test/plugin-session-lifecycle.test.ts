@@ -246,6 +246,22 @@ test("compacting injects harness state into output.context and never replaces ou
       decision: "repair",
       missingEvidence: ["required_tests_passed"],
       requiredCommands: ["npm test -- auth"],
+      humanReview: {
+        schemaVersion: "opencode-plusplus.human-review.v1",
+        requestId: "review-1",
+        taskId: "fix-login-timeout-bug",
+        sessionId: "session-1",
+        reasonCode: "BOUNDARY_EXPANSION_REQUIRED",
+        title: "OpenCode++ needs permission to expand task scope.",
+        explanation: "The current boundary excludes a shared token file.",
+        requiredUserAction: "Approve the requested scope expansion.",
+        suggestedCommands: [],
+        affectedFiles: ["packages/shared/token.ts"],
+        resumeCondition: "The new boundary revision resumes the current task.",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
       updatedAt: new Date().toISOString()
     });
     writeFileSync(path.join(root, ".agent-context", "sidecar", "latest.md"), "# Sidecar latest\n\nBlocking gates:\n- evidence.no-test-after-edit\n", "utf8");
@@ -259,6 +275,9 @@ test("compacting injects harness state into output.context and never replaces ou
     assert.match(output.context[0]!, /blocking=yes/);
     assert.match(output.context[0]!, /decision=repair/);
     assert.match(output.context[0]!, /missingEvidence: required_tests_passed/);
+    assert.match(output.context[0]!, /human review: BOUNDARY_EXPANSION_REQUIRED/);
+    assert.match(output.context[0]!, /human review action: Approve the requested scope expansion/);
+    assert.match(output.context[0]!, /human review resume: The new boundary revision/);
     assert.match(output.context[0]!, /opencode_plusplus_next returns finalize/);
     assert.equal(output.prompt, "original prompt");
 

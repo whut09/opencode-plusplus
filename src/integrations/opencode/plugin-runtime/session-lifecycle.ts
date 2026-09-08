@@ -147,6 +147,12 @@ export function buildCompactingContext(root: string, sessionId?: string): string
     lines.push(`OpenCode++ last evaluate: blocking=${evaluate.blocking ? "yes" : "no"}, decision=${evaluate.decision}`);
     if (evaluate.missingEvidence.length) lines.push(`OpenCode++ missingEvidence: ${evaluate.missingEvidence.join(", ")}`);
     if (evaluate.requiredCommands.length) lines.push(`OpenCode++ requiredCommands: ${evaluate.requiredCommands.join(" | ")}`);
+    if (evaluate.humanReview) {
+      lines.push(`OpenCode++ human review: ${evaluate.humanReview.reasonCode} — ${evaluate.humanReview.title}`);
+      lines.push(`OpenCode++ human review why: ${evaluate.humanReview.explanation}`);
+      lines.push(`OpenCode++ human review action: ${evaluate.humanReview.requiredUserAction}`);
+      lines.push(`OpenCode++ human review resume: ${evaluate.humanReview.resumeCondition}`);
+    }
   }
   const latest = sessionId ? undefined : readSidecarLatestSummary(root);
   if (latest) lines.push(`OpenCode++ sidecar latest:\n${latest}`);
