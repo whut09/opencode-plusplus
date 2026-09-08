@@ -1,4 +1,4 @@
-import type { InterventionStatus } from "../../../../harness/types.js";
+import type { HumanReviewRequest, InterventionStatus } from "../../../../harness/types.js";
 import { writeJsonAtomic } from "../../../../core/atomic-store.js";
 import path from "node:path";
 import type { PluginInterventionSnapshot } from "./types.js";
@@ -39,6 +39,7 @@ export interface PluginHarnessVisualization {
     blocking: boolean;
     nextAction: string;
   };
+  humanReview?: HumanReviewRequest;
   summary: string;
 }
 
@@ -54,6 +55,7 @@ export interface PluginVisualizationInput {
   requiredCommands?: string[];
   mustInspect?: string[];
   interventions?: PluginInterventionSnapshot;
+  humanReview?: HumanReviewRequest;
 }
 
 const STAGES = [
@@ -116,6 +118,7 @@ export function buildPluginHarnessVisualization(input: PluginVisualizationInput)
     },
     interventions: interventionCounts,
     decision: { action: input.decision, blocking: input.blocking, nextAction: input.nextAction },
+    ...(input.humanReview ? { humanReview: input.humanReview } : {}),
     summary: visualizationSummary(input, evidenceStatus, verifiedFixes, missingEvidence.length)
   };
 }
@@ -146,6 +149,14 @@ export function renderPluginHarnessVisualization(view: PluginHarnessVisualizatio
     `Selected files: ${view.observed.selectedFiles.length ? view.observed.selectedFiles.join(", ") : "none"}`,
     `Rejected files: ${view.observed.rejectedFiles.length ? view.observed.rejectedFiles.map((item) => `${item.path} (${item.reason})`).join(", ") : "none"}`,
     `Interventions: ${interventionSummary || "none"}`,
+    ...(view.humanReview
+      ? [
+          `Human review reason: ${view.humanReview.reasonCode}`,
+          `Human review why: ${view.humanReview.explanation}`,
+          `Human review action: ${view.humanReview.requiredUserAction}`,
+          `Human review resume: ${view.humanReview.resumeCondition}`
+        ]
+      : []),
     "Decision basis:",
     ...(view.decisionBasis.length ? view.decisionBasis.map((item) => `- ${item}`) : ["- no blocking signal recorded"]),
     "Note: this dashboard shows recorded system facts and decision inputs, not hidden model reasoning."

@@ -222,6 +222,7 @@ test("human review keeps compact status and exposes a separate dashboard", () =>
   assert.match(parsed.humanReadable ?? "", /Do\nConfigure a test command/);
   assert.match(parsed.humanReadable ?? "", /Continue\nA current command result/);
   assert.match(parsed.dashboard ?? "", /OpenCode\+\+ Harness Dashboard/);
+  assert.match(parsed.dashboard ?? "", /Human review reason: NO_EXECUTABLE_TEST/);
 });
 
 test("a blocking result cannot announce verified from a stale visualization", () => {

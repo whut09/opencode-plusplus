@@ -76,7 +76,8 @@ export function createPluginHarnessResult(
         missingEvidence: input.missingEvidence,
         requiredCommands: input.requiredCommands,
         mustInspect: input.mustInspect,
-        interventions: input.interventions
+        interventions: input.interventions,
+        humanReview: input.humanReview
       })
   };
   const actionSummary = buildPluginActionSummary(result);
@@ -141,7 +142,8 @@ export function renderPluginHarnessResult(result: PluginHarnessResult, options: 
       missingEvidence: result.missingEvidence,
       requiredCommands: result.requiredCommands,
       mustInspect: result.mustInspect,
-      interventions: result.interventions
+      interventions: result.interventions,
+      humanReview: result.humanReview
     });
   const normalized = { ...result, visualization };
   const actionSummary = normalized.actionSummary ?? buildPluginActionSummary(normalized);
@@ -200,6 +202,14 @@ function detailedHumanReadableSummary(result: PluginHarnessResult): string {
   if (result.interventions?.remainingProblems.length)
     lines.push(`Remaining problems: ${result.interventions.remainingProblems.map((event) => event.problem).join("; ")}`);
   if (result.interventions?.humanReview.length) lines.push(`Human review: ${result.interventions.humanReview.map((event) => event.problem).join("; ")}`);
+  if (result.humanReview) {
+    lines.push(
+      `Human review request: ${result.humanReview.reasonCode} — ${result.humanReview.title}`,
+      `Why: ${result.humanReview.explanation}`,
+      `User action: ${result.humanReview.requiredUserAction}`,
+      `Resume: ${result.humanReview.resumeCondition}`
+    );
+  }
   if (result.requiredCommands.length) lines.push(`Required commands: ${result.requiredCommands.join(" | ")}`);
   if (result.visualization) lines.push(renderPluginHarnessVisualization(result.visualization));
   return lines.join("\n");
