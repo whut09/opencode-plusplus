@@ -56,7 +56,7 @@ test("toast helper prefers tui.toast.show and falls back to app.log", () => {
   assert.equal(notifyOpenCodePlusPlusToast(noClient, "OpenCode++", "已就绪"), "log");
 });
 
-test("intervention notifications only emit high-signal events and deduplicate them", () => {
+test("intervention notifications emit one prioritized transition and deduplicate it", () => {
   const toastCalls: string[] = [];
   const context: OpenCodeSidecarRuntimeContext = {
     directory: "/tmp",
@@ -82,16 +82,14 @@ test("intervention notifications only emit high-signal events and deduplicate th
 
   assert.equal(notifyPluginInterventionSignals(context, snapshot, "prepare"), 0);
   assert.equal(toastCalls.length, 0);
-  assert.equal(notifyPluginInterventionSignals(context, snapshot, "evaluate"), 4);
+  assert.equal(notifyPluginInterventionSignals(context, snapshot, "evaluate"), 1);
   assert.equal(notifyPluginInterventionSignals(context, snapshot, "evaluate"), 0);
-  assert.equal(toastCalls.length, 4);
-  assert.ok(toastCalls.some((message) => message.includes("blocker")));
-  assert.ok(toastCalls.some((message) => message.includes("verified")));
-  assert.ok(toastCalls.some((message) => message.includes("human review")));
-  assert.ok(toastCalls.some((message) => message.includes("no progress")));
+  assert.equal(toastCalls.length, 1);
+  assert.ok(toastCalls.some((message) => message.includes("human review required")));
+  assert.ok(!toastCalls.some((message) => message.includes("no progress")));
 
   const otherRepository = { ...context, directory: "/tmp/other-opencode-repository" };
-  assert.equal(notifyPluginInterventionSignals(otherRepository, snapshot, "evaluate"), 4);
+  assert.equal(notifyPluginInterventionSignals(otherRepository, snapshot, "evaluate"), 1);
 });
 
 test("session ready build is debounced at least two seconds by default", () => {

@@ -82,10 +82,9 @@ test("plugin harness renderers expose the unified Desktop protocol fields", () =
     assert.ok(Array.isArray(parsed.findings));
     assert.ok(typeof parsed.summary === "string");
     assert.equal(parsed.visualization?.view, "harness-progress");
-    assert.ok(parsed.humanReadable?.includes("OpenCode++ Harness Dashboard"));
-    assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ action summary/);
-    assert.match(parsed.humanReadable ?? "", /Observed \/ 检测到/);
-    assert.match(parsed.humanReadable ?? "", /Repaired, not yet verified/);
+    assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ✗ Repair required/);
+    assert.doesNotMatch(parsed.humanReadable ?? "", /OpenCode\+\+ Harness Dashboard/);
+    assert.doesNotMatch(parsed.humanReadable ?? "", /Prevented:\s*none/);
     assert.ok(parsed.actionSummary);
     assert.match(parsed.summary, /OpenCode\+\+ recorded: observed=/);
   }
@@ -134,7 +133,8 @@ test("Desktop result separates recorded plugin actions from external task claims
 
   assert.deepEqual(parsed.actionSummary?.prevented, ["protected path edit -> block edit [src/generated.ts]"]);
   assert.deepEqual(parsed.actionSummary?.repaired, []);
-  assert.match(parsed.humanReadable ?? "", /recorded by the OpenCode\+\+ plugin/);
+  assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ✗ Repair required/);
+  assert.match(parsed.humanReadable ?? "", /Prevented:/);
   assert.match(parsed.humanReadable ?? "", /No runnable test command was configured/);
   assert.doesNotMatch(parsed.humanReadable ?? "", /please confirm.*tests passed/i);
 });
@@ -151,19 +151,42 @@ test("Desktop prints OpenCode++ Harness status to the app log and status toast",
     directory: "C:/repo",
     client: {
       app: { log: ({ message }: { message: string }) => logs.push(message) },
-      tui: { toast: { show: ({ message }: { message: string }) => toasts.push(message) } }
+      tui: { toast: { show: ({ title, message }: { title: string; message: string }) => toasts.push(`${title}: ${message}`) } }
     }
   };
 
   assert.equal(notifyPluginHarnessStatus(context, base, recorder), "toast");
   assert.equal(toasts.length, 1);
-  assert.match(toasts[0], /evaluate/);
-  assert.match(toasts[0], /decision=run-tests/);
+  assert.match(toasts[0], /repair required/);
+  assert.match(toasts[0], /missing tests/);
   assert.match(logs.join("\n"), /OpenCode\+\+ Harness Dashboard/);
 
   toasts.length = 0;
   assert.equal(notifyPluginHarnessStatus(context, { ...base, tool: "retrieve" }, recorder), "log");
   assert.equal(toasts.length, 0);
+});
+
+test("explicit dashboard rendering retains the detailed view", () => {
+  const parsed = JSON.parse(renderPluginHarnessResult({ ...base, tool: "dashboard" })) as PluginHarnessResult;
+  assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ Harness Dashboard/);
+  assert.match(parsed.dashboard ?? "", /Decision basis:/);
+  assert.doesNotMatch(parsed.humanReadable ?? "", /Repair required/);
+});
+
+test("human review keeps compact status and exposes a separate dashboard", () => {
+  const parsed = JSON.parse(
+    renderEvaluateText({
+      ...base,
+      decision: "human-review",
+      nextAction: "human-review",
+      findings: ["No executable verification command was found for source changes."],
+      requiredCommands: []
+    })
+  ) as PluginHarnessResult;
+  assert.match(parsed.humanReadable ?? "", /OpenCode\+\+ ⚠ Human review/);
+  assert.match(parsed.humanReadable ?? "", /Need you/);
+  assert.match(parsed.humanReadable ?? "", /Suggested/);
+  assert.match(parsed.dashboard ?? "", /OpenCode\+\+ Harness Dashboard/);
 });
 
 test("structured harness errors never become unparseable text", () => {
