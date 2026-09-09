@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -6,6 +5,7 @@ import { readJsonDiagnostic, updateJsonAtomic, writeJsonAtomicWithRevision } fro
 import { runSafeCommand } from "../../core/safe-command.js";
 import { bullet, code, heading, table } from "../../outputs/renderers/markdown.js";
 import { traceIdForTask as sharedTraceIdForTask } from "../../core/task-id.js";
+import { currentWorkingTreeFingerprint } from "../../core/working-tree.js";
 
 export type ExecutionFinalState = "planned" | "in_progress" | "partial_success" | "success" | "failed" | "blocked";
 export type ExecutionStepResult = "passed" | "failed" | "skipped" | "unknown";
@@ -351,25 +351,7 @@ function summarizeCommandOutput(stdout: string, stderr: string): string {
 }
 
 export function currentWorkingTreeHash(root: string): string {
-  const pathspec = ["--", ".", ":(exclude).agent-context/**", ":(exclude)AGENTS.md"];
-  const status = safeGit(root, ["status", "--porcelain=v1", "--untracked-files=all", ...pathspec]);
-  const diff = safeGit(root, ["diff", "--binary", ...pathspec]);
-  return hashText([status, diff].join("\n"));
-}
-
-function safeGit(root: string, args: string[]): string {
-  const result = spawnSync("git", args, {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024
-  });
-  return [
-    `$ git ${args.join(" ")}`,
-    `status=${typeof result.status === "number" ? result.status : "unknown"}`,
-    typeof result.stdout === "string" ? result.stdout : "",
-    typeof result.stderr === "string" ? result.stderr : "",
-    result.error?.message ?? ""
-  ].join("\n");
+  return currentWorkingTreeFingerprint(root);
 }
 
 function hashText(text: string): string {
