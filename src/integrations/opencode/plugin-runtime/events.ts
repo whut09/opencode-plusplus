@@ -140,7 +140,7 @@ function transitionMessageForSnapshot(transition: HarnessToastTransition, snapsh
 export function notifyPluginInterventionSignals(
   context: OpenCodeSidecarRuntimeContext,
   snapshot: PluginInterventionSnapshot | undefined,
-  tool: "prepare" | "retrieve" | "evaluate" | "next" | "dashboard" | "human-review",
+  tool: "prepare" | "retrieve" | "evaluate" | "next" | "dashboard" | "human-review" | "resume",
   recorder?: OpenCodeSidecarRecorder
 ): number {
   if (!snapshot || tool === "prepare" || tool === "retrieve" || tool === "dashboard") return 0;

@@ -9,8 +9,8 @@ import {
   parseInterventionsArgs,
   parseNextArgs,
   parsePrepareArgs,
-  parseRetrieveArgs
-  ,parseResumeArgs
+  parseRetrieveArgs,
+  parseResumeArgs
 } from "./args.js";
 import { harnessFailureMessage } from "./error.js";
 import { evaluatePluginHarness } from "./evaluate.js";
@@ -32,6 +32,7 @@ import { readPluginEvaluateState, readPluginHarnessSession, resolvePluginTask, r
 import { createPluginHarnessResult } from "./protocol.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
 import { notifyPluginHarnessStatus, notifyPluginInterventionSignals, type OpenCodeSidecarRecorder, type OpenCodeSidecarRuntimeContext } from "../events.js";
+import { resumePluginHarnessTask } from "./resume.js";
 
 export { OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES } from "./types.js";
 export type { OpenCodePlusPlusPluginToolName } from "./types.js";
@@ -44,8 +45,8 @@ export {
   parseInterventionsArgs,
   parseNextArgs,
   parsePrepareArgs,
-  parseRetrieveArgs
-  ,parseResumeArgs
+  parseRetrieveArgs,
+  parseResumeArgs
 } from "./args.js";
 export { parseHumanReviewArgs } from "./args.js";
 export { renderEvaluateText, renderHarnessError, renderNextText, renderPrepareText, renderRetrieveText } from "./format.js";
@@ -109,6 +110,25 @@ export async function executeHumanReviewTool(
       if (typeof parsed === "string") return renderHarnessError("human-review", parsed, root);
       const result = await reviewPluginHarnessTask(root, parsed);
       return typeof result === "string" ? renderHarnessError("human-review", result, root) : renderPluginResult(result);
+    },
+    context,
+    recorder
+  );
+}
+
+export async function executeResumeTool(
+  root: string,
+  args: unknown,
+  context?: OpenCodeSidecarRuntimeContext,
+  recorder?: OpenCodeSidecarRecorder
+): Promise<string> {
+  return runHarnessTool(
+    root,
+    "resume",
+    async () => {
+      const parsed = parseResumeArgs(args);
+      if (typeof parsed === "string") return renderHarnessError("resume", parsed, root);
+      return renderPluginResult(await resumePluginHarnessTask(root, parsed));
     },
     context,
     recorder
@@ -274,7 +294,7 @@ export async function executeNextTool(
 
 async function runHarnessTool(
   root: string,
-  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review",
+  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review" | "resume",
   action: () => Promise<string>,
   context?: OpenCodeSidecarRuntimeContext,
   recorder?: OpenCodeSidecarRecorder
@@ -289,7 +309,7 @@ async function runHarnessTool(
 }
 
 function notifyFromToolResult(
-  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review",
+  tool: "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "human-review" | "resume",
   output: string,
   context?: OpenCodeSidecarRuntimeContext,
   recorder?: OpenCodeSidecarRecorder

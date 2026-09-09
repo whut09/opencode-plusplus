@@ -14,7 +14,8 @@ import {
   executeInterventionsTool,
   executeNextTool,
   executePrepareTool,
-  executeRetrieveTool
+  executeRetrieveTool,
+  executeResumeTool
 } from "./harness/index.js";
 import { createIdleVerifier } from "./idle-verify.js";
 import { normalizeToolExecuteAfter, normalizeToolExecuteBefore } from "./hook-input.js";
@@ -243,6 +244,17 @@ export async function createOpenCodePlusPlusSidecar(
           confirmed: { type: "boolean" }
         },
         (args) => executeHumanReviewTool(context.directory, args, context, recorder)
+      ),
+      opencode_plusplus_resume: desktopHarnessTool(
+        "Inspect or explicitly resume an unfinished OpenCode++ task. Compatible working trees resume verification; stale trees require a rebuild; mismatched repositories are never restored.",
+        {
+          action: { type: "string" },
+          taskId: { type: "string" },
+          sourceSessionId: { type: "string" },
+          sessionId: { type: "string" },
+          confirmed: { type: "boolean" }
+        },
+        (args) => executeResumeTool(context.directory, args, context, recorder)
       ),
       opencode_plusplus_evaluate: desktopHarnessTool(
         "Call after edits or before claiming done. Returns a compact OpenCode++ status plus structured actionSummary, blocking findings, decision, and exact missing evidence.",
