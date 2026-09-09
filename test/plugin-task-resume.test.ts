@@ -5,7 +5,9 @@ import path from "node:path";
 import test from "node:test";
 import { runGit } from "../src/core/git.js";
 import { createOpenCodePlusPlusSidecar } from "../src/integrations/opencode/plugin-runtime/index.js";
-import { readTaskIdentity } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
+import { readTaskIdentity, writeTaskIdentity } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
+import { TASK_RESUME_SCHEMA_VERSION } from "../src/integrations/opencode/plugin-runtime/harness/types.js";
+import { currentSidecarWorkingTreeHash } from "../src/integrations/opencode/plugin-runtime/worktree-hash.js";
 import { initializeWorkflowState, readWorkflowState } from "../src/integrations/opencode/plugin-runtime/harness/workflow.js";
 import { writePluginEvaluateState } from "../src/integrations/opencode/plugin-runtime/harness/session.js";
 import { locateHumanReviewRequest, upsertHumanReviewRequest } from "../src/integrations/opencode/plugin-runtime/harness/human-review.js";
@@ -73,6 +75,41 @@ test("Desktop resume never restores an unknown candidate", async () => {
     const result = readResult(await tools.opencode_plusplus_resume.execute({ action: "resume", taskId: "missing", sessionId: "session-new", confirmed: true }));
     assert.equal(result.ok, false);
     assert.equal(result.error?.code, "RESUME_CANDIDATE_NOT_FOUND");
+    assert.equal(readWorkflowState(root, "session-new"), undefined);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Desktop resume reports a repository mismatch without creating a review fallback", async () => {
+  const root = createResumeFixture();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
+    const task = readResult(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-old" }));
+    const fingerprint = currentSidecarWorkingTreeHash(root);
+    writeTaskIdentity(root, {
+      schemaVersion: TASK_RESUME_SCHEMA_VERSION,
+      sessionId: "foreign-session",
+      repositoryRoot: path.join(root, "another-repository"),
+      taskId: task.taskId!,
+      baseWorkingTreeFingerprint: fingerprint,
+      latestWorkingTreeFingerprint: fingerprint,
+      status: "active",
+      updatedAt: new Date().toISOString()
+    });
+    const result = readResult(
+      await tools.opencode_plusplus_resume.execute({
+        action: "resume",
+        taskId: task.taskId,
+        sourceSessionId: "foreign-session",
+        sessionId: "session-new",
+        confirmed: true
+      })
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, "RESUME_REPOSITORY_MISMATCH");
+    assert.equal(result.humanReview, undefined);
     assert.equal(readWorkflowState(root, "session-new"), undefined);
   } finally {
     rmSync(root, { recursive: true, force: true });
