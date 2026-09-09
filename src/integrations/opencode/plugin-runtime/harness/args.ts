@@ -10,8 +10,8 @@ import type {
   PluginInterventionsArgs,
   PluginNextArgs,
   PluginPrepareArgs,
-  PluginRetrieveArgs
-  ,PluginResumeArgs
+  PluginRetrieveArgs,
+  PluginResumeArgs
 } from "./types.js";
 
 export function parseContextSearchArgs(args: unknown): PluginContextSearchArgs | string {

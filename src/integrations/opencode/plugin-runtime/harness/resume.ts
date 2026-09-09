@@ -1,7 +1,6 @@
 import path from "node:path";
 import { readJsonDiagnostic } from "../../../../core/atomic-store.js";
 import type { TaskRunManifest } from "../../../../outputs/task-run.js";
-import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
 import { createPluginHarnessResult } from "./protocol.js";
 import { preparePluginHarnessTask } from "./prepare.js";
 import { locateHumanReviewRequest } from "./human-review.js";
