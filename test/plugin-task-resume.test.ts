@@ -161,6 +161,7 @@ test("human review approval resumes from an older session without restarting the
       requestedBoundary: ["packages/shared/token.ts"],
       boundaryRevision: prepared.boundaryRevision
     });
+    assert.equal(locateHumanReviewRequest(root, prepared.taskId!, "session-new")?.request.status, "pending");
 
     const resumed = readResult(
       await tools.opencode_plusplus_human_review.execute({
@@ -178,6 +179,7 @@ test("human review approval resumes from an older session without restarting the
     assert.equal(readWorkflowState(root, "session-new")?.phase, "editing");
     assert.ok(resumed.allowedEditGlobs.includes("packages/shared/token.ts"));
     assert.equal(locateHumanReviewRequest(root, prepared.taskId!, "session-new", request.requestId)?.request.status, "resumed");
+    assert.equal(locateHumanReviewRequest(root, prepared.taskId!, "session-new")?.request.status, "resumed");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

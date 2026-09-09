@@ -88,11 +88,10 @@ export function locateHumanReviewRequest(
     return { request: exact.value, filePath: exactPath };
   }
   const discovered = discoverHumanReviewRequests(root, taskId);
-  const matches = discovered.requests.filter((item) => {
-    if (requestId) return item.request.requestId === requestId;
-    return !sessionId || !item.request.sessionId || item.request.sessionId === sessionId;
-  });
-  return matches[0];
+  if (requestId) return discovered.requests.find((item) => item.request.requestId === requestId);
+  const pending = discovered.requests.filter((item) => item.request.status === "pending");
+  const sameSession = pending.find((item) => !sessionId || !item.request.sessionId || item.request.sessionId === sessionId);
+  return sameSession ?? pending[0] ?? discovered.requests[0];
 }
 
 export function buildHumanReviewRequest(draft: HumanReviewRequestDraft): HumanReviewRequest {
