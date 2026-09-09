@@ -30,7 +30,7 @@ export function readTaskIdentity(root: string, taskId: string, sessionId: string
   const result = readTaskIdentityDiagnostic(root, taskId, sessionId);
   if (result.status === "missing") return undefined;
   if (result.status === "corrupt") throw new Error(`Task identity JSON is corrupt: ${result.filePath}: ${result.error}`);
-  assertTaskIdentity(result.value, result.filePath);
+  assertTaskIdentity(result.value, taskIdentityPath(root, taskId, sessionId));
   return normalizeTaskIdentity(result.value);
 }
 
