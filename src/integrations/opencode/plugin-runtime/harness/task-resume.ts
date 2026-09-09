@@ -133,6 +133,38 @@ export function updateTaskIdentityForWorkingTree(root: string, taskId: string, s
   });
 }
 
+export function upsertTaskIdentityForState(
+  root: string,
+  input: {
+    taskId: string;
+    sessionId: string;
+    baseWorkingTreeFingerprint: string;
+    latestWorkingTreeFingerprint?: string;
+    status: TaskResumeStatus;
+  }
+): TaskIdentity {
+  const current = readTaskIdentity(root, input.taskId, input.sessionId);
+  if (current) {
+    return (
+      updateTaskIdentity(root, input.taskId, input.sessionId, {
+        baseWorkingTreeFingerprint: current.baseWorkingTreeFingerprint,
+        latestWorkingTreeFingerprint: input.latestWorkingTreeFingerprint ?? currentSidecarWorkingTreeHash(root),
+        status: input.status
+      }) ?? current
+    );
+  }
+  return writeTaskIdentity(root, {
+    schemaVersion: TASK_RESUME_SCHEMA_VERSION,
+    sessionId: input.sessionId,
+    repositoryRoot: root,
+    taskId: input.taskId,
+    baseWorkingTreeFingerprint: input.baseWorkingTreeFingerprint,
+    latestWorkingTreeFingerprint: input.latestWorkingTreeFingerprint ?? currentSidecarWorkingTreeHash(root),
+    status: input.status,
+    updatedAt: new Date().toISOString()
+  });
+}
+
 export function taskIdentityForCurrentTree(
   root: string,
   input: Pick<TaskIdentity, "sessionId" | "taskId" | "baseWorkingTreeFingerprint" | "status"> & Partial<Pick<TaskIdentity, "repositoryRoot">>
