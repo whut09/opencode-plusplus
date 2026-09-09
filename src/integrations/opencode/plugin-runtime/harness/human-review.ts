@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { readJsonDiagnostic, updateJsonAtomic } from "../../../../core/atomic-store.js";
 import { taskSlug } from "../../../../core/task-id.js";
@@ -26,6 +27,16 @@ export interface HumanReviewRequestUpdate {
   now?: string;
 }
 
+export interface HumanReviewRequestLocation {
+  request: HumanReviewRequest;
+  filePath: string;
+}
+
+export interface HumanReviewDiscovery {
+  requests: HumanReviewRequestLocation[];
+  issues: Array<{ path: string; message: string }>;
+}
+
 export function humanReviewRequestPath(root: string, taskId: string | null, sessionId: string | null): string {
   const task = taskId?.trim() ? taskSlug(taskId.trim()) : "unknown-task";
   const session = sessionId?.trim() ? `-${taskSlug(sessionId.trim())}` : "";
@@ -37,6 +48,52 @@ export function readHumanReviewRequest(root: string, taskId: string | null, sess
   const result = readJsonDiagnostic<HumanReviewRequest>(filePath);
   if (result.status === "corrupt") throw new Error(`Human review JSON is corrupt: ${result.filePath}: ${result.error}`);
   return result.status === "ok" && result.value.schemaVersion === "opencode-plusplus.human-review.v1" ? result.value : undefined;
+}
+
+export function discoverHumanReviewRequests(root: string, taskId?: string | null): HumanReviewDiscovery {
+  const directory = path.dirname(humanReviewRequestPath(root, null, null));
+  if (!fsExists(directory)) return { requests: [], issues: [] };
+  const normalizedTaskId = taskId?.trim() ? taskSlug(taskId.trim()) : undefined;
+  const requests: HumanReviewRequestLocation[] = [];
+  const issues: Array<{ path: string; message: string }> = [];
+  for (const file of readDirectory(directory).filter((item) => /^human-review-.+\.json$/i.test(item)).sort((left, right) => left.localeCompare(right))) {
+    const filePath = path.join(directory, file);
+    const result = readJsonDiagnostic<HumanReviewRequest>(filePath);
+    if (result.status === "missing") continue;
+    if (result.status === "corrupt") {
+      issues.push({ path: filePath, message: result.error });
+      continue;
+    }
+    if (result.value.schemaVersion !== "opencode-plusplus.human-review.v1") {
+      issues.push({ path: filePath, message: `Unsupported human review schema: ${String(result.value.schemaVersion)}.` });
+      continue;
+    }
+    if (normalizedTaskId && result.value.taskId !== normalizedTaskId) continue;
+    requests.push({ request: result.value, filePath });
+  }
+  requests.sort((left, right) => right.request.updatedAt.localeCompare(left.request.updatedAt) || left.filePath.localeCompare(right.filePath));
+  return { requests, issues };
+}
+
+export function locateHumanReviewRequest(
+  root: string,
+  taskId: string | null,
+  sessionId: string | null,
+  requestId?: string
+): HumanReviewRequestLocation | undefined {
+  const exactPath = humanReviewRequestPath(root, taskId, sessionId);
+  const exact = readJsonDiagnostic<HumanReviewRequest>(exactPath);
+  if (exact.status === "corrupt") throw new Error(`Human review JSON is corrupt: ${exact.filePath}: ${exact.error}`);
+  if (exact.status === "ok" && exact.value.schemaVersion === "opencode-plusplus.human-review.v1" && (!requestId || exact.value.requestId === requestId)) {
+    return { request: exact.value, filePath: exactPath };
+  }
+  const discovered = discoverHumanReviewRequests(root, taskId);
+  const matches = discovered.requests.filter((item) => {
+    if (requestId && item.request.requestId !== requestId) return false;
+    if (sessionId && item.request.sessionId && item.request.sessionId !== sessionId) return false;
+    return true;
+  });
+  return matches[0];
 }
 
 export function buildHumanReviewRequest(draft: HumanReviewRequestDraft): HumanReviewRequest {
@@ -97,7 +154,11 @@ export function updateHumanReviewRequest(
   requestId: string,
   update: HumanReviewRequestUpdate
 ): HumanReviewRequest {
-  return updateJsonAtomic<HumanReviewRequest>(humanReviewRequestPath(root, taskId, sessionId), (current) => {
+  return updateHumanReviewRequestAtPath(humanReviewRequestPath(root, taskId, sessionId), requestId, update);
+}
+
+export function updateHumanReviewRequestAtPath(filePath: string, requestId: string, update: HumanReviewRequestUpdate): HumanReviewRequest {
+  return updateJsonAtomic<HumanReviewRequest>(filePath, (current) => {
     if (!current || current.requestId !== requestId) throw new Error(`Human review request ${requestId} is not current for this task.`);
     if (current.status !== "pending") return current;
     const now = update.now ?? new Date().toISOString();
@@ -194,4 +255,12 @@ function copyForReason(
 
 function normalize(items: string[] | undefined): string[] {
   return [...new Set((items ?? []).map((item) => item.trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right));
+}
+
+function fsExists(filePath: string): boolean {
+  return existsSync(filePath);
+}
+
+function readDirectory(directory: string): string[] {
+  return readdirSync(directory);
 }
