@@ -19,6 +19,7 @@ test("installer: C# installer mirrors the primary agent content", () => {
 test("installer prompt is a primary mode and contains no command workflow", () => {
   assert.match(PLUSPLUS_AGENT, /^mode: primary/m);
   assert.match(PLUSPLUS_AGENT, /opencode_plusplus_prepare/);
+  assert.match(PLUSPLUS_AGENT, /opencode_plusplus_resume/);
   assert.match(PLUSPLUS_AGENT, /opencode_plusplus_evaluate/);
   assert.match(PLUSPLUS_AGENT, /opencode_plusplus_next/);
   assert.doesNotMatch(PLUSPLUS_AGENT, /\$ARGUMENTS|Slash Command|\/plusplus-task|\/plusplus-verify/);
