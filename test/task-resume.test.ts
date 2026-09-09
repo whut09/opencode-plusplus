@@ -7,7 +7,9 @@ import { runGit } from "../src/core/git.js";
 import {
   classifyTaskIdentity,
   discoverTaskIdentities,
+  discoverTaskResumeCandidates,
   readTaskIdentity,
+  synchronizeTaskResumeCandidates,
   taskIdentityPath,
   writeTaskIdentity
 } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
@@ -105,6 +107,37 @@ test("identity discovery retains repository mismatches and diagnoses corruption"
     assert.equal(discovered.identities.length, 1);
     assert.equal(discovered.issues.length, 1);
     assert.equal(classifyTaskIdentity(root, discovered.identities[0]!).compatibility, "mismatched-repository");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("resume synchronization marks only changed in-repository tasks stale", () => {
+  const root = createGitFixture("synchronize");
+  try {
+    const fingerprint = currentSidecarWorkingTreeHash(root);
+    writeTaskIdentity(root, {
+      schemaVersion: TASK_RESUME_SCHEMA_VERSION,
+      sessionId: "old-session",
+      repositoryRoot: root,
+      taskId: "fix-login",
+      baseWorkingTreeFingerprint: fingerprint,
+      latestWorkingTreeFingerprint: fingerprint,
+      status: "verification-required",
+      updatedAt: "2026-09-09T00:00:00.000Z"
+    });
+    writeFileSync(path.join(root, "src", "login.ts"), "export const login = 'new';\n", "utf8");
+
+    const before = discoverTaskResumeCandidates(root, { currentSessionId: "new-session" });
+    assert.equal(before.candidates[0]?.compatibility, "stale-task");
+    const synchronized = synchronizeTaskResumeCandidates(root, { currentSessionId: "new-session" });
+    assert.deepEqual(synchronized.staleTaskIds, ["fix-login"]);
+    assert.equal(synchronized.candidates[0]?.identity.status, "stale-task");
+    assert.equal(synchronized.candidates[0]?.identity.latestWorkingTreeFingerprint, synchronized.currentWorkingTreeFingerprint);
+
+    const repeated = synchronizeTaskResumeCandidates(root, { currentSessionId: "new-session" });
+    assert.deepEqual(repeated.staleTaskIds, ["fix-login"]);
+    assert.equal(repeated.candidates[0]?.identity.revision, synchronized.candidates[0]?.identity.revision);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
