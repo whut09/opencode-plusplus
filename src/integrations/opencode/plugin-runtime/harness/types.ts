@@ -34,6 +34,7 @@ export interface TaskIdentity {
   latestWorkingTreeFingerprint: string;
   status: TaskResumeStatus;
   updatedAt: string;
+  resumedToSessionId?: string;
 }
 
 export type TaskResumeCompatibility = "resume-verification" | "stale-task" | "mismatched-repository" | "not-resumable";
@@ -177,6 +178,7 @@ export interface PluginWorkflowState {
   editBoundary: { allowedEditGlobs: string[]; avoidEditGlobs: string[] };
   boundaryRevision: number;
   resumeCandidates?: TaskResumeCandidate[];
+  resumedFromSessionId?: string;
   requiredTests: string[];
   lastEventKey: string | null;
   sourceChanged: boolean;
@@ -314,6 +316,7 @@ export type PluginRetrieveResult = PluginHarnessResult;
 export type PluginEvaluateResult = PluginHarnessResult;
 export type PluginNextResult = PluginHarnessResult;
 export type PluginHumanReviewResult = PluginHarnessResult;
+export type PluginResumeResult = PluginHarnessResult;
 
 export interface PluginEvaluateState {
   schemaVersion: string;

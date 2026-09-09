@@ -11,6 +11,7 @@ export interface TaskIdentityUpdate {
   status?: TaskResumeStatus;
   updatedAt?: string;
   repositoryRoot?: string;
+  resumedToSessionId?: string;
 }
 
 export interface TaskIdentityDiscovery {
@@ -254,6 +255,9 @@ export function assertTaskIdentity(value: unknown, filePath = "task identity"): 
   }
   if (identity.revision !== undefined && typeof identity.revision !== "number") {
     throw new Error(`Invalid task identity revision in ${filePath}: expected a number.`);
+  }
+  if (identity.resumedToSessionId !== undefined && (typeof identity.resumedToSessionId !== "string" || !identity.resumedToSessionId.trim())) {
+    throw new Error(`Invalid task identity resumedToSessionId in ${filePath}: expected a non-empty string.`);
   }
 }
 

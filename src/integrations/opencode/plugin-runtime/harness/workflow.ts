@@ -1,7 +1,7 @@
 import { readJsonDiagnostic, updateJsonAtomic } from "../../../../core/atomic-store.js";
 import { hashText } from "../evidence.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
-import type { PluginWorkflowState } from "./types.js";
+import type { PluginWorkflowState, TaskIdentity } from "./types.js";
 import path from "node:path";
 import { synchronizeTaskResumeCandidates } from "./task-resume.js";
 
@@ -62,6 +62,44 @@ export function refreshWorkflowResumeCandidates(root: string, sessionId: string)
       resumeCandidates: nextCandidates,
       updatedAt: new Date().toISOString()
     };
+  });
+}
+
+export function resumeWorkflowState(
+  root: string,
+  sourceSessionId: string,
+  targetSessionId: string,
+  identity: TaskIdentity
+): PluginWorkflowState {
+  const source = readWorkflowState(root, sourceSessionId);
+  const current = currentSidecarWorkingTreeHash(root);
+  const candidates = synchronizeTaskResumeCandidates(root, { currentSessionId: targetSessionId }).candidates;
+  const resumed: PluginWorkflowState = {
+    schemaVersion: 1,
+    revision: 1,
+    sessionId: targetSessionId,
+    phase: "evaluated",
+    taskId: identity.taskId,
+    contextFingerprint: source?.contextFingerprint ?? contextFingerprint(root, identity.taskId),
+    initialWorkingTreeHash: source?.initialWorkingTreeHash ?? identity.baseWorkingTreeFingerprint,
+    currentWorkingTreeHash: current,
+    editBoundary: source?.editBoundary ?? { allowedEditGlobs: [], avoidEditGlobs: [] },
+    boundaryRevision: source?.boundaryRevision ?? 1,
+    resumeCandidates: candidates,
+    requiredTests: source?.requiredTests ?? [],
+    lastEventKey: `resume:${sourceSessionId}:${targetSessionId}:${current}`,
+    sourceChanged: current !== (source?.initialWorkingTreeHash ?? identity.baseWorkingTreeFingerprint),
+    resumedFromSessionId: sourceSessionId,
+    updatedAt: new Date().toISOString()
+  };
+  return updateJsonAtomic<PluginWorkflowState>(workflowStatePath(root, targetSessionId), (existing) => {
+    if (existing) {
+      if (existing.taskId && existing.taskId !== identity.taskId) {
+        throw new Error(`Session ${targetSessionId} is already associated with task ${existing.taskId}.`);
+      }
+      return existing;
+    }
+    return resumed;
   });
 }
 
