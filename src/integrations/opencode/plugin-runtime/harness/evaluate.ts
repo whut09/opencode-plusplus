@@ -227,7 +227,7 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
       sessionId: resolved.sessionId,
       baseWorkingTreeFingerprint: workflow?.initialWorkingTreeHash ?? result.workingTreeHash,
       latestWorkingTreeFingerprint: result.workingTreeHash,
-      status: humanReview ? "human-review" : blocking ? "verification-required" : decision === "finalize" ? "completed" : "active"
+      status: humanReview ? "human-review" : blocking ? "verification-required" : "active"
     });
   }
   return result;
