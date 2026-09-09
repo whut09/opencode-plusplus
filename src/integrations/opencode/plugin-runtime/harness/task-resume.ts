@@ -18,6 +18,17 @@ export interface TaskIdentityDiscovery {
   issues: Array<{ path: string; message: string }>;
 }
 
+export interface TaskResumeDiscoveryOptions {
+  taskId?: string;
+  currentSessionId?: string | null;
+}
+
+export interface TaskResumeDiscoveryResult {
+  currentWorkingTreeFingerprint: string;
+  candidates: TaskResumeCandidate[];
+  issues: Array<{ path: string; message: string }>;
+}
+
 export function taskIdentityPath(root: string, taskId: string, sessionId: string): string {
   return path.join(root, ".agent-context", "sidecar", `task-identity-${taskSlug(taskId)}-${taskSlug(sessionId)}.json`);
 }
@@ -94,6 +105,27 @@ export function discoverTaskIdentities(root: string): TaskIdentityDiscovery {
   return { identities, issues };
 }
 
+export function discoverTaskResumeCandidates(root: string, options: TaskResumeDiscoveryOptions = {}): TaskResumeDiscoveryResult {
+  const currentWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root);
+  const taskId = options.taskId?.trim() ? taskSlug(options.taskId) : undefined;
+  const discovered = discoverTaskIdentities(root);
+  const candidates = discovered.identities
+    .filter((identity) => !taskId || identity.taskId === taskId)
+    .filter((identity) => !options.currentSessionId || identity.sessionId !== options.currentSessionId)
+    .map((identity) => classifyTaskIdentityAtFingerprint(root, identity, currentWorkingTreeFingerprint))
+    .sort(compareResumeCandidate);
+  return { currentWorkingTreeFingerprint, candidates, issues: discovered.issues };
+}
+
+export function markTaskIdentityStale(root: string, identity: TaskIdentity, currentWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root)): TaskIdentity {
+  const updated = updateTaskIdentity(root, identity.taskId, identity.sessionId, {
+    latestWorkingTreeFingerprint: currentWorkingTreeFingerprint,
+    status: "stale-task"
+  });
+  if (!updated) throw new Error(`Task identity disappeared for ${identity.taskId} and session ${identity.sessionId}.`);
+  return updated;
+}
+
 export function taskIdentityForCurrentTree(
   root: string,
   input: Pick<TaskIdentity, "sessionId" | "taskId" | "baseWorkingTreeFingerprint" | "status"> & Partial<Pick<TaskIdentity, "repositoryRoot">>
@@ -161,8 +193,12 @@ export function assertTaskIdentity(value: unknown, filePath = "task identity"): 
 }
 
 export function classifyTaskIdentity(root: string, identity: TaskIdentity): TaskResumeCandidate {
-  const repositoryMatches = normalizeRepositoryRoot(root) === normalizeRepositoryRoot(identity.repositoryRoot);
   const currentWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root);
+  return classifyTaskIdentityAtFingerprint(root, identity, currentWorkingTreeFingerprint);
+}
+
+function classifyTaskIdentityAtFingerprint(root: string, identity: TaskIdentity, currentWorkingTreeFingerprint: string): TaskResumeCandidate {
+  const repositoryMatches = normalizeRepositoryRoot(root) === normalizeRepositoryRoot(identity.repositoryRoot);
   const workingTreeCompatible = currentWorkingTreeFingerprint === identity.latestWorkingTreeFingerprint;
   const unfinished = isUnfinishedTaskStatus(identity.status);
   if (!repositoryMatches) {
@@ -203,4 +239,19 @@ export function classifyTaskIdentity(root: string, identity: TaskIdentity): Task
     compatibility: "stale-task",
     reason: "The working tree differs from the last persisted task state; context and the validation plan must be rebuilt."
   };
+}
+
+function compareResumeCandidate(left: TaskResumeCandidate, right: TaskResumeCandidate): number {
+  const compatibilityRank: Record<TaskResumeCandidate["compatibility"], number> = {
+    "resume-verification": 0,
+    "stale-task": 1,
+    "not-resumable": 2,
+    "mismatched-repository": 3
+  };
+  return (
+    compatibilityRank[left.compatibility] - compatibilityRank[right.compatibility] ||
+    right.identity.updatedAt.localeCompare(left.identity.updatedAt) ||
+    left.identity.taskId.localeCompare(right.identity.taskId) ||
+    left.identity.sessionId.localeCompare(right.identity.sessionId)
+  );
 }
