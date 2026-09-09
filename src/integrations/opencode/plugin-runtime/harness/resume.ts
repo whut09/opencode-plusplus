@@ -2,7 +2,7 @@ import path from "node:path";
 import { readJsonDiagnostic } from "../../../../core/atomic-store.js";
 import type { TaskRunManifest } from "../../../../outputs/task-run.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
-import { createPluginHarnessError, createPluginHarnessResult } from "./protocol.js";
+import { createPluginHarnessResult } from "./protocol.js";
 import { preparePluginHarnessTask } from "./prepare.js";
 import { locateHumanReviewRequest } from "./human-review.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
@@ -21,14 +21,12 @@ export async function resumePluginHarnessTask(root: string, args: PluginResumeAr
   const discovery = synchronizeTaskResumeCandidates(root, { currentSessionId });
   if (args.action === "inspect") return buildInspectionResult(root, args, discovery);
   if (!currentSessionId) {
-    return createPluginHarnessError(
+    return createResumeError(
       root,
-      "resume",
       "resume requires the current OpenCode session id so recovered state cannot leak across sessions.",
       null,
       null,
       "none",
-      undefined,
       {
         code: "RESUME_SESSION_REQUIRED",
         message: "A current session id is required for explicit task recovery.",
@@ -41,14 +39,12 @@ export async function resumePluginHarnessTask(root: string, args: PluginResumeAr
 
   const candidate = selectCandidate(discovery.candidates, args);
   if (!candidate) {
-    return createPluginHarnessError(
+    return createResumeError(
       root,
-      "resume",
       "No compatible unfinished task was selected for recovery.",
       args.taskId ?? null,
       currentSessionId,
       args.taskId ? "argument" : "none",
-      undefined,
       {
         code: "RESUME_CANDIDATE_NOT_FOUND",
         message: "No compatible unfinished task was selected for recovery.",
@@ -59,14 +55,12 @@ export async function resumePluginHarnessTask(root: string, args: PluginResumeAr
     );
   }
   if (candidate.compatibility === "mismatched-repository") {
-    return createPluginHarnessError(
+    return createResumeError(
       root,
-      "resume",
       candidate.reason,
       candidate.identity.taskId,
       currentSessionId,
       "argument",
-      undefined,
       {
         code: "RESUME_REPOSITORY_MISMATCH",
         message: candidate.reason,
@@ -269,12 +263,42 @@ function createTaskResumeResult(
 }
 
 function resumeFailure(root: string, candidate: TaskResumeCandidate, sessionId: string, code: string, message: string): PluginResumeResult {
-  return createPluginHarnessError(root, "resume", message, candidate.identity.taskId, sessionId, "argument", undefined, {
+  return createResumeError(root, message, candidate.identity.taskId, sessionId, "argument", {
     code,
     message,
     attribution: "opencode-plusplus",
     retryable: false,
     nextStep: "Call resume with action inspect and review the persisted candidate diagnostics."
+  });
+}
+
+function createResumeError(
+  root: string,
+  message: string,
+  taskId: string | null,
+  sessionId: string | null,
+  taskIdSource: "argument" | "session" | "created" | "none",
+  error: NonNullable<PluginResumeResult["error"]>
+): PluginResumeResult {
+  return createPluginHarnessResult(root, {
+    ok: false,
+    tool: "resume",
+    summary: `OpenCode++ resume was not performed: ${message}`,
+    error,
+    taskId,
+    sessionId,
+    taskIdSource,
+    currentPhase: "resume",
+    decision: "block",
+    blocking: true,
+    findings: [message],
+    missingEvidence: [],
+    requiredCommands: [],
+    mustInspect: [],
+    allowedEditGlobs: [],
+    avoidEditGlobs: [],
+    artifacts: [".agent-context/sidecar"],
+    nextAction: "resume"
   });
 }
 
