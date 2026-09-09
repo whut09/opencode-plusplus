@@ -126,6 +126,13 @@ export function markTaskIdentityStale(root: string, identity: TaskIdentity, curr
   return updated;
 }
 
+export function updateTaskIdentityForWorkingTree(root: string, taskId: string, sessionId: string, status: TaskResumeStatus): TaskIdentity | undefined {
+  return updateTaskIdentity(root, taskId, sessionId, {
+    latestWorkingTreeFingerprint: currentSidecarWorkingTreeHash(root),
+    status
+  });
+}
+
 export function taskIdentityForCurrentTree(
   root: string,
   input: Pick<TaskIdentity, "sessionId" | "taskId" | "baseWorkingTreeFingerprint" | "status"> & Partial<Pick<TaskIdentity, "repositoryRoot">>

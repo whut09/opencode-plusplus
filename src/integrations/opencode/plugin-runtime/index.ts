@@ -30,6 +30,7 @@ import {
 import { currentSidecarWorkingTreeHash } from "./worktree-hash.js";
 import { isGeneratedRuntimePath } from "../sidecar-path-guard.js";
 import { isOpenCodePlusPlusAgent } from "./agent-scope.js";
+import { updateTaskIdentityForWorkingTree } from "./harness/task-resume.js";
 
 export { OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES } from "./harness/index.js";
 
@@ -311,6 +312,7 @@ export async function createOpenCodePlusPlusSidecar(
           if (isGeneratedRuntimePath(String(file))) return;
           const workflow = safeInitializeWorkflow(sessionId!);
           safeUpdateWorkflow(sessionId!, { phase: "editing", taskId: workflow.taskId, eventKey: `file.edited:${file}` });
+          if (workflow.taskId) safeUpdateTaskIdentity(workflow.taskId, sessionId!, "dirty");
           idle.markDirty("file.edited", { file });
         }
 
@@ -324,6 +326,7 @@ export async function createOpenCodePlusPlusSidecar(
           const workflow = safeInitializeWorkflow(sessionId!);
           if (!workflow.taskId) throw new Error("OpenCode++ requires opencode_plusplus_prepare before source edits.");
           safeUpdateWorkflow(sessionId!, { phase: "editing", taskId: workflow.taskId, eventKey: `file.watcher.updated:${file}` });
+          safeUpdateTaskIdentity(workflow.taskId, sessionId!, "dirty");
           idle.markDirty("file.watcher.updated", { file });
         }
 
@@ -371,6 +374,18 @@ export async function createOpenCodePlusPlusSidecar(
       updateWorkflowState(context.directory, sessionId, update);
     } catch (error) {
       recorder.log("debug", "workflow update failed safely", { sessionId, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  function safeUpdateTaskIdentity(
+    taskId: string,
+    sessionId: string,
+    status: "active" | "dirty" | "verification-required" | "human-review" | "stale-task" | "completed" | "abandoned"
+  ): void {
+    try {
+      updateTaskIdentityForWorkingTree(context.directory, taskId, sessionId, status);
+    } catch (error) {
+      recorder.log("debug", "task identity update failed safely", { taskId, sessionId, message: error instanceof Error ? error.message : String(error) });
     }
   }
 }
