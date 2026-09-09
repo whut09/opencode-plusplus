@@ -154,8 +154,11 @@ export function markTaskIdentityStale(root: string, identity: TaskIdentity, curr
 }
 
 export function updateTaskIdentityForWorkingTree(root: string, taskId: string, sessionId: string, status: TaskResumeStatus): TaskIdentity | undefined {
+  const current = readTaskIdentity(root, taskId, sessionId);
+  const latestWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root);
+  if (current?.status === status && current.latestWorkingTreeFingerprint === latestWorkingTreeFingerprint) return current;
   return updateTaskIdentity(root, taskId, sessionId, {
-    latestWorkingTreeFingerprint: currentSidecarWorkingTreeHash(root),
+    latestWorkingTreeFingerprint,
     status
   });
 }

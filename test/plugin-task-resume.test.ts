@@ -7,6 +7,7 @@ import { runGit } from "../src/core/git.js";
 import { createOpenCodePlusPlusSidecar } from "../src/integrations/opencode/plugin-runtime/index.js";
 import { readTaskIdentity } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
 import { readWorkflowState } from "../src/integrations/opencode/plugin-runtime/harness/workflow.js";
+import { writePluginEvaluateState } from "../src/integrations/opencode/plugin-runtime/harness/session.js";
 import { locateHumanReviewRequest, upsertHumanReviewRequest } from "../src/integrations/opencode/plugin-runtime/harness/human-review.js";
 
 test("Desktop resume inspects and restores a compatible unfinished task into a new session", async () => {
@@ -120,6 +121,47 @@ test("human review approval resumes from an older session without restarting the
     assert.equal(readWorkflowState(root, "session-new")?.phase, "editing");
     assert.ok(resumed.allowedEditGlobs.includes("packages/shared/token.ts"));
     assert.equal(locateHumanReviewRequest(root, prepared.taskId!, "session-new", request.requestId)?.request.status, "resumed");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("next marks a finalized task completed and does not advance it repeatedly", async () => {
+  const root = createResumeFixture();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
+    const prepared = readResult(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-final" }));
+    writePluginEvaluateState(root, {
+      schemaVersion: prepared.schemaVersion,
+      taskId: prepared.taskId!,
+      sessionId: "session-final",
+      taskIdSource: "created",
+      workingTreeHash: prepared.workingTreeHash,
+      currentPhase: "evaluate",
+      decision: "finalize",
+      blocking: false,
+      findings: [],
+      missingEvidence: [],
+      requiredCommands: [],
+      mustInspect: prepared.mustInspect,
+      allowedEditGlobs: prepared.allowedEditGlobs,
+      avoidEditGlobs: prepared.avoidEditGlobs,
+      boundaryRevision: prepared.boundaryRevision,
+      artifacts: prepared.artifacts,
+      nextAction: "next",
+      summary: "ready",
+      updatedAt: new Date().toISOString()
+    });
+
+    const first = readResult(await tools.opencode_plusplus_next.execute({ taskId: prepared.taskId, sessionId: "session-final" }));
+    const identityAfterFirst = readTaskIdentity(root, prepared.taskId!, "session-final");
+    const second = readResult(await tools.opencode_plusplus_next.execute({ taskId: prepared.taskId, sessionId: "session-final" }));
+    assert.equal(first.nextAction, "finalize");
+    assert.equal(second.nextAction, "finalize");
+    assert.equal(identityAfterFirst?.status, "completed");
+    assert.equal(readTaskIdentity(root, prepared.taskId!, "session-final")?.revision, identityAfterFirst?.revision);
+    assert.equal(readWorkflowState(root, "session-final")?.phase, "finalize");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
