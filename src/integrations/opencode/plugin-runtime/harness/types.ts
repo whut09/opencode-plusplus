@@ -18,6 +18,53 @@ export const OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES = [
 export type OpenCodePlusPlusPluginToolName = (typeof OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES)[number];
 
 export type PluginHarnessTaskType = "bugfix" | "feature" | "refactor";
+
+export const TASK_RESUME_SCHEMA_VERSION = "opencode-plusplus.task-resume.v1";
+
+export type TaskResumeStatus = "active" | "dirty" | "verification-required" | "human-review" | "stale-task" | "completed" | "abandoned";
+
+export interface TaskIdentity {
+  schemaVersion: typeof TASK_RESUME_SCHEMA_VERSION;
+  revision?: number;
+  sessionId: string;
+  repositoryRoot: string;
+  taskId: string;
+  baseWorkingTreeFingerprint: string;
+  latestWorkingTreeFingerprint: string;
+  status: TaskResumeStatus;
+  updatedAt: string;
+}
+
+export type TaskResumeCompatibility = "resume-verification" | "stale-task" | "mismatched-repository" | "not-resumable";
+
+export interface TaskResumeCandidate {
+  identity: TaskIdentity;
+  currentWorkingTreeFingerprint: string;
+  repositoryMatches: boolean;
+  workingTreeCompatible: boolean;
+  compatibility: TaskResumeCompatibility;
+  reason: string;
+}
+
+export type PluginResumeAction = "inspect" | "resume";
+
+export interface PluginResumeArgs {
+  taskId?: string;
+  sourceSessionId?: string;
+  sessionId?: string | null;
+  action: PluginResumeAction;
+  confirmed?: boolean;
+}
+
+export type PluginResumeStatus = "none" | "available" | "resumed" | "stale-task" | "human-review";
+
+export interface PluginResumeState {
+  status: PluginResumeStatus;
+  candidates: TaskResumeCandidate[];
+  selectedTaskId?: string;
+  sourceSessionId?: string;
+  message: string;
+}
 import type { InterventionStatus } from "../../../../harness/types.js";
 import type { ResolutionEvidence } from "../../../../harness/types.js";
 import type { HumanReviewRequest } from "../../../../harness/types.js";
@@ -127,13 +174,14 @@ export interface PluginWorkflowState {
   currentWorkingTreeHash: string;
   editBoundary: { allowedEditGlobs: string[]; avoidEditGlobs: string[] };
   boundaryRevision: number;
+  resumeCandidates?: TaskResumeCandidate[];
   requiredTests: string[];
   lastEventKey: string | null;
   sourceChanged: boolean;
   updatedAt: string;
 }
 
-export type PluginHarnessToolKind = "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "feedback" | "human-review";
+export type PluginHarnessToolKind = "prepare" | "retrieve" | "dashboard" | "evaluate" | "next" | "feedback" | "human-review" | "resume";
 export type PluginTaskIdSource = "argument" | "session" | "created" | "none";
 
 export type PluginPerformanceStatus = "completed" | "timeout";
@@ -252,6 +300,7 @@ export interface PluginHarnessResult {
   verification?: VerificationPlan;
   interventions?: PluginInterventionSnapshot;
   humanReview?: HumanReviewRequest;
+  resume?: PluginResumeState;
   actionSummary?: PluginActionSummary;
   compactStatus?: import("./compact-status.js").PluginCompactStatus;
   displayMode?: import("./compact-status.js").PluginHarnessDisplayMode;
@@ -287,6 +336,7 @@ export interface PluginEvaluateState {
   updatedAt: string;
   interventions?: PluginInterventionSnapshot;
   humanReview?: HumanReviewRequest;
+  resume?: PluginResumeState;
   verification?: VerificationPlan;
   visualization?: import("./visualization.js").PluginHarnessVisualization;
 }
