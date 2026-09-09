@@ -3,6 +3,7 @@ import { readJsonDiagnostic } from "../../../../core/atomic-store.js";
 import type { TaskRunManifest } from "../../../../outputs/task-run.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
 import { createPluginHarnessError, createPluginHarnessResult } from "./protocol.js";
+import { preparePluginHarnessTask } from "./prepare.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
 import {
   synchronizeTaskResumeCandidates,
@@ -146,23 +147,40 @@ function resumeCompatibleTask(
   return createTaskResumeResult(root, manifest, targetSessionId, resume, "The task state was resumed without prepare; current verification is required.");
 }
 
-function resumeStaleTask(
+async function resumeStaleTask(
   root: string,
   args: PluginResumeArgs,
   discovery: TaskResumeDiscoveryResult,
   candidate: TaskResumeCandidate
-): PluginResumeResult {
+): Promise<PluginResumeResult> {
   const targetSessionId = args.sessionId!;
   const manifest = readManifest(root, candidate.identity.taskId);
   if (!manifest) return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The stale task manifest is unavailable for rebuilding.");
   const resume: PluginResumeState = {
-    status: "stale-task",
+    status: "resumed",
     candidates: discovery.candidates,
     selectedTaskId: candidate.identity.taskId,
     sourceSessionId: candidate.identity.sessionId,
-    message: `Task ${candidate.identity.taskId} is stale because the working tree changed. Rebuild context and the validation plan before continuing.`
+    message: `Task ${candidate.identity.taskId} was stale because the working tree changed. Context and the validation plan were rebuilt for the new session.`
   };
-  return createTaskResumeResult(root, manifest, targetSessionId, resume, `Stale task ${candidate.identity.taskId} requires an explicit rebuild; no old session state was restored.`, { stale: true });
+  if (candidate.identity.sessionId === targetSessionId) return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be rebuilt into its source session.");
+  const sourceSession = readPluginHarnessSession(root, candidate.identity.sessionId);
+  const prepared = await preparePluginHarnessTask(root, {
+    task: sourceSession?.task ?? manifest.task,
+    type: sourceSession?.type === "auto" ? undefined : sourceSession?.type ?? manifest.type,
+    sessionId: targetSessionId,
+    forceRebuild: true
+  });
+  updateTaskIdentity(root, candidate.identity.taskId, candidate.identity.sessionId, {
+    status: "abandoned",
+    resumedToSessionId: targetSessionId
+  });
+  return {
+    ...prepared,
+    tool: "resume",
+    summary: `${resume.message} The existing task was not restarted; its persisted task id was retained.`,
+    resume
+  };
 }
 
 function buildHumanReviewResumeResult(

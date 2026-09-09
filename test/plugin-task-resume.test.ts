@@ -57,6 +57,35 @@ test("Desktop resume never restores an unknown candidate", async () => {
   }
 });
 
+test("Desktop resume rebuilds context and validation for a stale task", async () => {
+  const root = createResumeFixture();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
+    const prepared = readResult(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-old" }));
+    writeFileSync(path.join(root, "src", "auth", "session.ts"), "export function loginSession() { return 'changed'; }\n", "utf8");
+
+    const resumed = readResult(
+      await tools.opencode_plusplus_resume.execute({
+        action: "resume",
+        taskId: prepared.taskId,
+        sourceSessionId: "session-old",
+        sessionId: "session-new",
+        confirmed: true
+      })
+    );
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.resume?.status, "resumed");
+    assert.equal(resumed.nextAction, "evaluate");
+    assert.match(resumed.resume?.message ?? "", /rebuilt/i);
+    assert.equal(readTaskIdentity(root, prepared.taskId!, "session-old")?.status, "abandoned");
+    assert.equal(readTaskIdentity(root, prepared.taskId!, "session-new")?.status, "active");
+    assert.equal(readWorkflowState(root, "session-new")?.phase, "prepared");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 function readResult(output: string): import("../src/integrations/opencode/plugin-runtime/harness/types.js").PluginHarnessResult {
   return JSON.parse(output) as import("../src/integrations/opencode/plugin-runtime/harness/types.js").PluginHarnessResult;
 }
