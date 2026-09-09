@@ -56,7 +56,9 @@ export function discoverHumanReviewRequests(root: string, taskId?: string | null
   const normalizedTaskId = taskId?.trim() ? taskSlug(taskId.trim()) : undefined;
   const requests: HumanReviewRequestLocation[] = [];
   const issues: Array<{ path: string; message: string }> = [];
-  for (const file of readDirectory(directory).filter((item) => /^human-review-.+\.json$/i.test(item)).sort((left, right) => left.localeCompare(right))) {
+  for (const file of readDirectory(directory)
+    .filter((item) => /^human-review-.+\.json$/i.test(item))
+    .sort((left, right) => left.localeCompare(right))) {
     const filePath = path.join(directory, file);
     const result = readJsonDiagnostic<HumanReviewRequest>(filePath);
     if (result.status === "missing") continue;

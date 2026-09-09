@@ -142,7 +142,9 @@ export function buildCompactingContext(root: string, sessionId?: string): string
         .map((candidate) => `${candidate.identity.taskId} [${candidate.compatibility}] from ${candidate.identity.sessionId}: ${candidate.reason}`)
         .join(" | ")}`
     );
-    lines.push("OpenCode++ will not restore a mismatched repository or an unconfirmed candidate automatically; call opencode_plusplus_resume with action inspect.");
+    lines.push(
+      "OpenCode++ will not restore a mismatched repository or an unconfirmed candidate automatically; call opencode_plusplus_resume with action inspect."
+    );
   }
   if (session) {
     lines.push(`OpenCode++ taskId: ${session.taskId} (task: ${session.task})`);

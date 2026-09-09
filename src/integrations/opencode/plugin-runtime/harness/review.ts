@@ -109,7 +109,14 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
   if (targetSessionId && request.sessionId && targetSessionId !== request.sessionId) {
     const targetSession = readPluginHarnessSession(root, targetSessionId);
     if (targetSession && targetSession.taskId !== resolved.taskId) {
-      return reviewFailure(root, resolved.taskId, targetSessionId, "HUMAN_REVIEW_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${targetSession.taskId}.`, request);
+      return reviewFailure(
+        root,
+        resolved.taskId,
+        targetSessionId,
+        "HUMAN_REVIEW_SESSION_CONFLICT",
+        `Session ${targetSessionId} is already associated with task ${targetSession.taskId}.`,
+        request
+      );
     }
     if (sourceIdentity) resumeWorkflowState(root, request.sessionId, targetSessionId, sourceIdentity);
     else initializeWorkflowState(root, targetSessionId);
@@ -176,7 +183,6 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     },
     located!.filePath
   );
-
 }
 
 function reviewResult(
@@ -246,12 +252,7 @@ function reviewResult(
   return result;
 }
 
-function updateTaskIdentityIfPresent(
-  root: string,
-  taskId: string,
-  sessionId: string | null,
-  status: "abandoned"
-): void {
+function updateTaskIdentityIfPresent(root: string, taskId: string, sessionId: string | null, status: "abandoned"): void {
   if (!sessionId) return;
   updateTaskIdentity(root, taskId, sessionId, { status });
 }

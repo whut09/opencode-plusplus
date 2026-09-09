@@ -5,12 +5,7 @@ import { createPluginHarnessResult } from "./protocol.js";
 import { preparePluginHarnessTask } from "./prepare.js";
 import { locateHumanReviewRequest } from "./human-review.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
-import {
-  synchronizeTaskResumeCandidates,
-  updateTaskIdentity,
-  upsertTaskIdentityForState,
-  type TaskResumeDiscoveryResult
-} from "./task-resume.js";
+import { synchronizeTaskResumeCandidates, updateTaskIdentity, upsertTaskIdentityForState, type TaskResumeDiscoveryResult } from "./task-resume.js";
 import { readPluginHarnessSession, taskRunManifestPath, writePluginHarnessSession } from "./session.js";
 import type { PluginResumeArgs, PluginResumeState, PluginResumeResult, TaskResumeCandidate } from "./types.js";
 import { refreshWorkflowResumeCandidates, resumeWorkflowState } from "./workflow.js";
@@ -20,20 +15,13 @@ export async function resumePluginHarnessTask(root: string, args: PluginResumeAr
   const discovery = synchronizeTaskResumeCandidates(root, { currentSessionId });
   if (args.action === "inspect") return buildInspectionResult(root, args, discovery);
   if (!currentSessionId) {
-    return createResumeError(
-      root,
-      "resume requires the current OpenCode session id so recovered state cannot leak across sessions.",
-      null,
-      null,
-      "none",
-      {
-        code: "RESUME_SESSION_REQUIRED",
-        message: "A current session id is required for explicit task recovery.",
-        attribution: "opencode-plusplus",
-        retryable: false,
-        nextStep: "Call resume from the active OpenCode++ Desktop session with confirmed=true."
-      }
-    );
+    return createResumeError(root, "resume requires the current OpenCode session id so recovered state cannot leak across sessions.", null, null, "none", {
+      code: "RESUME_SESSION_REQUIRED",
+      message: "A current session id is required for explicit task recovery.",
+      attribution: "opencode-plusplus",
+      retryable: false,
+      nextStep: "Call resume from the active OpenCode++ Desktop session with confirmed=true."
+    });
   }
 
   const candidate = selectCandidate(discovery.candidates, args);
@@ -54,20 +42,13 @@ export async function resumePluginHarnessTask(root: string, args: PluginResumeAr
     );
   }
   if (candidate.compatibility === "mismatched-repository") {
-    return createResumeError(
-      root,
-      candidate.reason,
-      candidate.identity.taskId,
-      currentSessionId,
-      "argument",
-      {
-        code: "RESUME_REPOSITORY_MISMATCH",
-        message: candidate.reason,
-        attribution: "opencode-plusplus",
-        retryable: false,
-        nextStep: "Open the repository that owns this task or start a new task here."
-      }
-    );
+    return createResumeError(root, candidate.reason, candidate.identity.taskId, currentSessionId, "argument", {
+      code: "RESUME_REPOSITORY_MISMATCH",
+      message: candidate.reason,
+      attribution: "opencode-plusplus",
+      retryable: false,
+      nextStep: "Open the repository that owns this task or start a new task here."
+    });
   }
   if (candidate.identity.status === "human-review") return buildHumanReviewResumeResult(root, args, discovery, candidate);
   if (candidate.compatibility === "stale-task") return resumeStaleTask(root, args, discovery, candidate);
@@ -99,20 +80,22 @@ function buildInspectionResult(root: string, args: PluginResumeArgs, discovery: 
   });
 }
 
-function resumeCompatibleTask(
-  root: string,
-  args: PluginResumeArgs,
-  discovery: TaskResumeDiscoveryResult,
-  candidate: TaskResumeCandidate
-): PluginResumeResult {
+function resumeCompatibleTask(root: string, args: PluginResumeArgs, discovery: TaskResumeDiscoveryResult, candidate: TaskResumeCandidate): PluginResumeResult {
   const sourceSessionId = candidate.identity.sessionId;
   const targetSessionId = args.sessionId!;
   const manifest = readManifest(root, candidate.identity.taskId);
   if (!manifest) return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The persisted task manifest is unavailable.");
-  if (sourceSessionId === targetSessionId) return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be resumed into its source session.");
+  if (sourceSessionId === targetSessionId)
+    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be resumed into its source session.");
   const existingTargetSession = readPluginHarnessSession(root, targetSessionId);
   if (existingTargetSession && existingTargetSession.taskId !== candidate.identity.taskId) {
-    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`);
+    return resumeFailure(
+      root,
+      candidate,
+      targetSessionId,
+      "RESUME_SESSION_CONFLICT",
+      `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`
+    );
   }
 
   const sourceSession = readPluginHarnessSession(root, sourceSessionId);
@@ -154,7 +137,8 @@ async function resumeStaleTask(
 ): Promise<PluginResumeResult> {
   const targetSessionId = args.sessionId!;
   const manifest = readManifest(root, candidate.identity.taskId);
-  if (!manifest) return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The stale task manifest is unavailable for rebuilding.");
+  if (!manifest)
+    return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The stale task manifest is unavailable for rebuilding.");
   const resume: PluginResumeState = {
     status: "stale-task",
     candidates: discovery.candidates,
@@ -162,15 +146,22 @@ async function resumeStaleTask(
     sourceSessionId: candidate.identity.sessionId,
     message: `Task ${candidate.identity.taskId} was stale because the working tree changed. Context and the validation plan were rebuilt for the new session.`
   };
-  if (candidate.identity.sessionId === targetSessionId) return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be rebuilt into its source session.");
+  if (candidate.identity.sessionId === targetSessionId)
+    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be rebuilt into its source session.");
   const existingTargetSession = readPluginHarnessSession(root, targetSessionId);
   if (existingTargetSession && existingTargetSession.taskId !== candidate.identity.taskId) {
-    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`);
+    return resumeFailure(
+      root,
+      candidate,
+      targetSessionId,
+      "RESUME_SESSION_CONFLICT",
+      `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`
+    );
   }
   const sourceSession = readPluginHarnessSession(root, candidate.identity.sessionId);
   const prepared = await preparePluginHarnessTask(root, {
     task: sourceSession?.task ?? manifest.task,
-    type: sourceSession?.type === "auto" ? undefined : sourceSession?.type ?? manifest.type,
+    type: sourceSession?.type === "auto" ? undefined : (sourceSession?.type ?? manifest.type),
     sessionId: targetSessionId,
     forceRebuild: true
   });
@@ -243,7 +234,11 @@ function createTaskResumeResult(
     currentPhase: "resume",
     decision: options.stale ? "repack" : "resume-verification",
     blocking: true,
-    findings: [options.stale ? "The persisted task is stale and requires a rebuilt context and validation plan." : "Resume is not completion evidence; current verification is required."],
+    findings: [
+      options.stale
+        ? "The persisted task is stale and requires a rebuilt context and validation plan."
+        : "Resume is not completion evidence; current verification is required."
+    ],
     missingEvidence: manifest.requiredCommands.length ? ["Current-session verification evidence"] : [],
     requiredCommands: manifest.requiredCommands,
     verification: manifest.verification,
@@ -251,10 +246,7 @@ function createTaskResumeResult(
     allowedEditGlobs: manifest.allowedEditGlobs,
     avoidEditGlobs: manifest.avoidEditGlobs,
     boundaryRevision: manifest.boundaryRevision ?? 1,
-    artifacts: [
-      ...manifest.files,
-      path.relative(root, taskRunManifestPath(root, manifest.id)).replaceAll("\\", "/")
-    ],
+    artifacts: [...manifest.files, path.relative(root, taskRunManifestPath(root, manifest.id)).replaceAll("\\", "/")],
     nextAction: options.stale ? "prepare" : "evaluate",
     interventions: pluginInterventionSnapshot(root, manifest.id, selectedFiles, []),
     resume
@@ -313,9 +305,20 @@ function buildResumeState(candidates: TaskResumeCandidate[]): PluginResumeState 
     };
   }
   const humanReview = candidates.find((candidate) => candidate.identity.status === "human-review");
-  if (humanReview) return { status: "human-review", candidates, selectedTaskId: humanReview.identity.taskId, sourceSessionId: humanReview.identity.sessionId, message: humanReview.reason };
+  if (humanReview)
+    return {
+      status: "human-review",
+      candidates,
+      selectedTaskId: humanReview.identity.taskId,
+      sourceSessionId: humanReview.identity.sessionId,
+      message: humanReview.reason
+    };
   if (candidates.some((candidate) => candidate.compatibility === "stale-task")) {
-    return { status: "stale-task", candidates, message: "Unfinished tasks were found, but their working tree fingerprints are stale; explicit rebuild is required." };
+    return {
+      status: "stale-task",
+      candidates,
+      message: "Unfinished tasks were found, but their working tree fingerprints are stale; explicit rebuild is required."
+    };
   }
   return { status: "none", candidates, message: "No unfinished task is eligible for recovery in this repository." };
 }

@@ -65,12 +65,7 @@ export function refreshWorkflowResumeCandidates(root: string, sessionId: string)
   });
 }
 
-export function resumeWorkflowState(
-  root: string,
-  sourceSessionId: string,
-  targetSessionId: string,
-  identity: TaskIdentity
-): PluginWorkflowState {
+export function resumeWorkflowState(root: string, sourceSessionId: string, targetSessionId: string, identity: TaskIdentity): PluginWorkflowState {
   const source = readWorkflowState(root, sourceSessionId);
   const current = currentSidecarWorkingTreeHash(root);
   const candidates = synchronizeTaskResumeCandidates(root, { currentSessionId: targetSessionId }).candidates;

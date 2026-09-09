@@ -10,8 +10,8 @@ import {
   parseInterventionsArgs,
   parseNextArgs,
   parsePrepareArgs,
-  parseRetrieveArgs
-  ,parseResumeArgs
+  parseRetrieveArgs,
+  parseResumeArgs
 } from "../src/integrations/opencode/plugin-runtime/harness/args.js";
 
 test("plugin harness arg parsers reject empty tasks and accept optional fields", () => {
