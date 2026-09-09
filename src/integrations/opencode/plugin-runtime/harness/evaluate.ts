@@ -21,6 +21,7 @@ import { PLUGIN_STAGE_TARGETS } from "./performance.js";
 import { assessPluginEditBoundary } from "./edit-boundary.js";
 import { classifyHumanReviewReason, humanReviewRequestPath, upsertHumanReviewRequest } from "./human-review.js";
 import { isDocumentationPath } from "../../../../core/verification/classifier.js";
+import { upsertTaskIdentityForState } from "./task-resume.js";
 
 const evaluations = new Map<string, Promise<PluginEvaluateResult | string>>();
 
@@ -220,6 +221,15 @@ async function evaluatePluginHarnessInternal(root: string, args: PluginEvaluateA
     verification: result.verification,
     updatedAt: new Date().toISOString()
   });
+  if (resolved.sessionId) {
+    upsertTaskIdentityForState(root, {
+      taskId: resolved.taskId,
+      sessionId: resolved.sessionId,
+      baseWorkingTreeFingerprint: workflow?.initialWorkingTreeHash ?? result.workingTreeHash,
+      latestWorkingTreeFingerprint: result.workingTreeHash,
+      status: humanReview ? "human-review" : blocking ? "verification-required" : decision === "finalize" ? "completed" : "active"
+    });
+  }
   return result;
 }
 
