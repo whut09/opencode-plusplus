@@ -4,6 +4,7 @@ import type { TaskRunManifest } from "../../../../outputs/task-run.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
 import { createPluginHarnessError, createPluginHarnessResult } from "./protocol.js";
 import { preparePluginHarnessTask } from "./prepare.js";
+import { locateHumanReviewRequest } from "./human-review.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
 import {
   synchronizeTaskResumeCandidates,
@@ -13,7 +14,7 @@ import {
 } from "./task-resume.js";
 import { readPluginHarnessSession, taskRunManifestPath, writePluginHarnessSession } from "./session.js";
 import type { PluginResumeArgs, PluginResumeState, PluginResumeResult, TaskResumeCandidate } from "./types.js";
-import { resumeWorkflowState } from "./workflow.js";
+import { refreshWorkflowResumeCandidates, resumeWorkflowState } from "./workflow.js";
 
 export async function resumePluginHarnessTask(root: string, args: PluginResumeArgs): Promise<PluginResumeResult> {
   const currentSessionId = args.sessionId?.trim() || undefined;
@@ -116,6 +117,10 @@ function resumeCompatibleTask(
   const manifest = readManifest(root, candidate.identity.taskId);
   if (!manifest) return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The persisted task manifest is unavailable.");
   if (sourceSessionId === targetSessionId) return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be resumed into its source session.");
+  const existingTargetSession = readPluginHarnessSession(root, targetSessionId);
+  if (existingTargetSession && existingTargetSession.taskId !== candidate.identity.taskId) {
+    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`);
+  }
 
   const sourceSession = readPluginHarnessSession(root, sourceSessionId);
   writePluginHarnessSession(root, {
@@ -137,6 +142,7 @@ function resumeCompatibleTask(
     latestWorkingTreeFingerprint: discovery.currentWorkingTreeFingerprint,
     status: "verification-required"
   });
+  refreshWorkflowResumeCandidates(root, targetSessionId);
   const resume: PluginResumeState = {
     status: "resumed",
     candidates: discovery.candidates,
@@ -157,13 +163,17 @@ async function resumeStaleTask(
   const manifest = readManifest(root, candidate.identity.taskId);
   if (!manifest) return resumeFailure(root, candidate, targetSessionId, "RESUME_MANIFEST_UNAVAILABLE", "The stale task manifest is unavailable for rebuilding.");
   const resume: PluginResumeState = {
-    status: "resumed",
+    status: "stale-task",
     candidates: discovery.candidates,
     selectedTaskId: candidate.identity.taskId,
     sourceSessionId: candidate.identity.sessionId,
     message: `Task ${candidate.identity.taskId} was stale because the working tree changed. Context and the validation plan were rebuilt for the new session.`
   };
   if (candidate.identity.sessionId === targetSessionId) return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_COLLISION", "A task cannot be rebuilt into its source session.");
+  const existingTargetSession = readPluginHarnessSession(root, targetSessionId);
+  if (existingTargetSession && existingTargetSession.taskId !== candidate.identity.taskId) {
+    return resumeFailure(root, candidate, targetSessionId, "RESUME_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${existingTargetSession.taskId}.`);
+  }
   const sourceSession = readPluginHarnessSession(root, candidate.identity.sessionId);
   const prepared = await preparePluginHarnessTask(root, {
     task: sourceSession?.task ?? manifest.task,
@@ -175,6 +185,7 @@ async function resumeStaleTask(
     status: "abandoned",
     resumedToSessionId: targetSessionId
   });
+  refreshWorkflowResumeCandidates(root, targetSessionId);
   return {
     ...prepared,
     tool: "resume",
@@ -189,6 +200,7 @@ function buildHumanReviewResumeResult(
   discovery: TaskResumeDiscoveryResult,
   candidate: TaskResumeCandidate
 ): PluginResumeResult {
+  const humanReview = locateHumanReviewRequest(root, candidate.identity.taskId, candidate.identity.sessionId)?.request;
   const resume: PluginResumeState = {
     status: "human-review",
     candidates: discovery.candidates,
@@ -214,7 +226,8 @@ function buildHumanReviewResumeResult(
     avoidEditGlobs: [],
     artifacts: [".agent-context/sidecar"],
     nextAction: "human-review",
-    resume
+    resume,
+    ...(humanReview ? { humanReview } : {})
   });
 }
 

@@ -77,7 +77,7 @@ test("Desktop resume rebuilds context and validation for a stale task", async ()
       })
     );
     assert.equal(resumed.ok, true);
-    assert.equal(resumed.resume?.status, "resumed");
+    assert.equal(resumed.resume?.status, "stale-task");
     assert.equal(resumed.nextAction, "evaluate");
     assert.match(resumed.resume?.message ?? "", /rebuilt/i);
     assert.equal(readTaskIdentity(root, prepared.taskId!, "session-old")?.status, "abandoned");
