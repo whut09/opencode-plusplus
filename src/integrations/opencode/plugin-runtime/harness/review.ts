@@ -1,13 +1,23 @@
 import { readJsonDiagnostic, updateJsonAtomic } from "../../../../core/atomic-store.js";
 import type { TaskRunManifest } from "../../../../outputs/task-run.js";
 import { createPluginHarnessResult } from "./protocol.js";
-import { humanReviewRequestPath, readHumanReviewRequest, updateHumanReviewRequest } from "./human-review.js";
+import { humanReviewRequestPath, locateHumanReviewRequest, updateHumanReviewRequestAtPath } from "./human-review.js";
 import { matchesPathGlob } from "./edit-boundary.js";
-import { readPluginEvaluateState, resolvePluginTask, taskRunExists, taskRunManifestPath, writePluginEvaluateState } from "./session.js";
+import {
+  readPluginEvaluateState,
+  readPluginHarnessSession,
+  resolvePluginTask,
+  taskRunExists,
+  taskRunManifestPath,
+  writePluginEvaluateState,
+  writePluginHarnessSession
+} from "./session.js";
+import type { HumanReviewRequest } from "../../../../harness/types.js";
 import type { PluginHumanReviewArgs, PluginHumanReviewResult } from "./types.js";
-import { readWorkflowState, updateWorkflowState } from "./workflow.js";
+import { initializeWorkflowState, readWorkflowState, resumeWorkflowState, updateWorkflowState } from "./workflow.js";
 import { pluginInterventionSnapshot } from "./interventions.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
+import { readTaskIdentity, updateTaskIdentity, upsertTaskIdentityForState } from "./task-resume.js";
 import path from "node:path";
 
 export async function reviewPluginHarnessTask(root: string, args: PluginHumanReviewArgs): Promise<PluginHumanReviewResult | string> {
@@ -16,7 +26,8 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
   if (!taskRunExists(root, resolved.taskId)) return `human review could not find a task run for ${resolved.taskId}.`;
 
   const sessionId = resolved.sessionId;
-  const request = readHumanReviewRequest(root, resolved.taskId, sessionId);
+  const located = locateHumanReviewRequest(root, resolved.taskId, sessionId, args.requestId);
+  const request = located?.request;
   if (!request)
     return reviewFailure(root, resolved.taskId, sessionId, "HUMAN_REVIEW_NOT_FOUND", "No pending OpenCode++ human review request exists for this task.");
   if (args.requestId && args.requestId !== request.requestId) {
@@ -34,13 +45,15 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
   }
 
   if (args.action === "reject") {
-    const rejected = updateHumanReviewRequest(root, resolved.taskId, sessionId, request.requestId, {
+    const rejected = updateHumanReviewRequestAtPath(located!.filePath, request.requestId, {
       status: "rejected",
       explanation: `${request.explanation} The requested continuation was declined by the user.`,
       requiredUserAction: "Choose a different in-boundary implementation or create a new task with an explicitly approved scope.",
       resumeCondition: "This task remains paused until a new task boundary or implementation decision is supplied.",
       now: new Date().toISOString()
     });
+    updateTaskIdentityIfPresent(root, resolved.taskId, request.sessionId, "abandoned");
+    updateTaskIdentityIfPresent(root, resolved.taskId, sessionId, "abandoned");
     return reviewResult(
       root,
       resolved.taskId,
@@ -49,7 +62,9 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
       rejected,
       "The requested scope expansion was declined; the task remains paused.",
       true,
-      "human-review"
+      "human-review",
+      {},
+      located!.filePath
     );
   }
 
@@ -76,6 +91,8 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     );
   }
   const manifest = manifestResult.value;
+  const targetSessionId = sessionId ?? request.sessionId;
+  const sourceIdentity = request.sessionId ? readTaskIdentity(root, resolved.taskId, request.sessionId) : undefined;
   const requested = [...new Set([...(request.requestedBoundary ?? []), ...request.affectedFiles])].sort((left, right) => left.localeCompare(right));
   const avoided = requested.filter((file) => (manifest.avoidEditGlobs ?? []).some((glob) => matchesPathGlob(file, glob)));
   if (avoided.length) {
@@ -89,6 +106,23 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     );
   }
 
+  if (targetSessionId && request.sessionId && targetSessionId !== request.sessionId) {
+    const targetSession = readPluginHarnessSession(root, targetSessionId);
+    if (targetSession && targetSession.taskId !== resolved.taskId) {
+      return reviewFailure(root, resolved.taskId, targetSessionId, "HUMAN_REVIEW_SESSION_CONFLICT", `Session ${targetSessionId} is already associated with task ${targetSession.taskId}.`, request);
+    }
+    if (sourceIdentity) resumeWorkflowState(root, request.sessionId, targetSessionId, sourceIdentity);
+    else initializeWorkflowState(root, targetSessionId);
+    writePluginHarnessSession(root, {
+      taskId: resolved.taskId,
+      task: manifest.task,
+      type: manifest.type,
+      sessionId: targetSessionId,
+      updatedAt: new Date().toISOString()
+    });
+    if (sourceIdentity) updateTaskIdentity(root, resolved.taskId, request.sessionId, { status: "abandoned", resumedToSessionId: targetSessionId });
+  }
+
   const nextRevision = Math.max(manifest.boundaryRevision ?? request.boundaryRevision ?? 1, request.boundaryRevision ?? 1) + 1;
   const allowedEditGlobs = [...new Set([...(manifest.allowedEditGlobs ?? []), ...requested])].sort((left, right) => left.localeCompare(right));
   const nextManifest = updateJsonAtomic<TaskRunManifest>(taskRunManifestPath(root, resolved.taskId), (current) => {
@@ -96,10 +130,10 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     return { ...current, allowedEditGlobs, boundaryRevision: nextRevision };
   });
 
-  if (sessionId) {
-    const workflow = readWorkflowState(root, sessionId);
+  if (targetSessionId) {
+    const workflow = readWorkflowState(root, targetSessionId) ?? initializeWorkflowState(root, targetSessionId);
     if (workflow) {
-      updateWorkflowState(root, sessionId, {
+      updateWorkflowState(root, targetSessionId, {
         phase: "editing",
         taskId: resolved.taskId,
         editBoundary: { allowedEditGlobs, avoidEditGlobs: nextManifest.avoidEditGlobs ?? [] },
@@ -109,7 +143,7 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     }
   }
 
-  const resumed = updateHumanReviewRequest(root, resolved.taskId, sessionId, request.requestId, {
+  const resumed = updateHumanReviewRequestAtPath(located!.filePath, request.requestId, {
     status: "resumed",
     explanation: `${request.explanation} The user approved the requested task scope expansion.`,
     requiredUserAction: "No further boundary action is required; continue the current task and run evaluate after the edit or verification step.",
@@ -117,10 +151,19 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
     boundaryRevision: nextRevision,
     now: new Date().toISOString()
   });
+  if (targetSessionId) {
+    upsertTaskIdentityForState(root, {
+      taskId: resolved.taskId,
+      sessionId: targetSessionId,
+      baseWorkingTreeFingerprint: sourceIdentity?.baseWorkingTreeFingerprint ?? currentSidecarWorkingTreeHash(root),
+      latestWorkingTreeFingerprint: currentSidecarWorkingTreeHash(root),
+      status: "dirty"
+    });
+  }
   return reviewResult(
     root,
     resolved.taskId,
-    sessionId,
+    targetSessionId,
     resolved.source,
     resumed,
     "Scope expansion approved; the existing task state was resumed without prepare.",
@@ -130,8 +173,10 @@ export async function reviewPluginHarnessTask(root: string, args: PluginHumanRev
       allowedEditGlobs,
       avoidEditGlobs: nextManifest.avoidEditGlobs ?? [],
       boundaryRevision: nextRevision
-    }
+    },
+    located!.filePath
   );
+
 }
 
 function reviewResult(
@@ -139,13 +184,14 @@ function reviewResult(
   taskId: string,
   sessionId: string | null,
   taskIdSource: "argument" | "session" | "created" | "none",
-  humanReview: NonNullable<ReturnType<typeof readHumanReviewRequest>>,
+  humanReview: HumanReviewRequest,
   summary: string,
   blocking: boolean,
   nextAction: string,
-  boundary: { allowedEditGlobs?: string[]; avoidEditGlobs?: string[]; boundaryRevision?: number } = {}
+  boundary: { allowedEditGlobs?: string[]; avoidEditGlobs?: string[]; boundaryRevision?: number } = {},
+  requestPath = humanReviewRequestPath(root, taskId, sessionId)
 ): PluginHumanReviewResult {
-  const latest = readPluginEvaluateState(root, sessionId);
+  const latest = readPluginEvaluateState(root, sessionId) ?? readPluginEvaluateState(root, humanReview.sessionId);
   const allowedEditGlobs = boundary.allowedEditGlobs ?? latest?.allowedEditGlobs ?? [];
   const avoidEditGlobs = boundary.avoidEditGlobs ?? latest?.avoidEditGlobs ?? [];
   const boundaryRevision = boundary.boundaryRevision ?? latest?.boundaryRevision ?? humanReview.boundaryRevision ?? 1;
@@ -167,7 +213,7 @@ function reviewResult(
     allowedEditGlobs,
     avoidEditGlobs,
     boundaryRevision,
-    artifacts: [".agent-context/sidecar/plugin-evaluate.json", path.relative(root, humanReviewRequestPath(root, taskId, sessionId)).replaceAll("\\", "/")],
+    artifacts: [".agent-context/sidecar/plugin-evaluate.json", path.relative(root, requestPath).replaceAll("\\", "/")],
     nextAction,
     interventions,
     humanReview,
@@ -200,13 +246,23 @@ function reviewResult(
   return result;
 }
 
+function updateTaskIdentityIfPresent(
+  root: string,
+  taskId: string,
+  sessionId: string | null,
+  status: "abandoned"
+): void {
+  if (!sessionId) return;
+  updateTaskIdentity(root, taskId, sessionId, { status });
+}
+
 function reviewFailure(
   root: string,
   taskId: string,
   sessionId: string | null,
   code: string,
   message: string,
-  humanReview?: NonNullable<ReturnType<typeof readHumanReviewRequest>>
+  humanReview?: HumanReviewRequest
 ): PluginHumanReviewResult {
   return createPluginHarnessResult(root, {
     ok: false,

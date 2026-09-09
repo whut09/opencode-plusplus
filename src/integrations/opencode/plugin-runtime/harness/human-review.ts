@@ -89,9 +89,8 @@ export function locateHumanReviewRequest(
   }
   const discovered = discoverHumanReviewRequests(root, taskId);
   const matches = discovered.requests.filter((item) => {
-    if (requestId && item.request.requestId !== requestId) return false;
-    if (sessionId && item.request.sessionId && item.request.sessionId !== sessionId) return false;
-    return true;
+    if (requestId) return item.request.requestId === requestId;
+    return !sessionId || !item.request.sessionId || item.request.sessionId === sessionId;
   });
   return matches[0];
 }

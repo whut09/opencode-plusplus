@@ -7,6 +7,7 @@ import { runGit } from "../src/core/git.js";
 import { createOpenCodePlusPlusSidecar } from "../src/integrations/opencode/plugin-runtime/index.js";
 import { readTaskIdentity } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
 import { readWorkflowState } from "../src/integrations/opencode/plugin-runtime/harness/workflow.js";
+import { locateHumanReviewRequest, upsertHumanReviewRequest } from "../src/integrations/opencode/plugin-runtime/harness/human-review.js";
 
 test("Desktop resume inspects and restores a compatible unfinished task into a new session", async () => {
   const root = createResumeFixture();
@@ -81,6 +82,44 @@ test("Desktop resume rebuilds context and validation for a stale task", async ()
     assert.equal(readTaskIdentity(root, prepared.taskId!, "session-old")?.status, "abandoned");
     assert.equal(readTaskIdentity(root, prepared.taskId!, "session-new")?.status, "active");
     assert.equal(readWorkflowState(root, "session-new")?.phase, "prepared");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("human review approval resumes from an older session without restarting the task", async () => {
+  const root = createResumeFixture();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
+    const prepared = readResult(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-old" }));
+    const request = upsertHumanReviewRequest(root, {
+      taskId: prepared.taskId,
+      sessionId: "session-old",
+      reasonCode: "BOUNDARY_EXPANSION_REQUIRED",
+      explanation: "The fix requires a shared token helper.",
+      affectedFiles: ["packages/shared/token.ts"],
+      currentBoundary: ["src/auth/session.ts"],
+      requestedBoundary: ["packages/shared/token.ts"],
+      boundaryRevision: prepared.boundaryRevision
+    });
+
+    const resumed = readResult(
+      await tools.opencode_plusplus_human_review.execute({
+        taskId: prepared.taskId,
+        sessionId: "session-new",
+        requestId: request.requestId,
+        action: "approve",
+        confirmed: true
+      })
+    );
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.nextAction, "evaluate");
+    assert.equal(readTaskIdentity(root, prepared.taskId!, "session-old")?.status, "abandoned");
+    assert.equal(readTaskIdentity(root, prepared.taskId!, "session-new")?.status, "dirty");
+    assert.equal(readWorkflowState(root, "session-new")?.phase, "editing");
+    assert.ok(resumed.allowedEditGlobs.includes("packages/shared/token.ts"));
+    assert.equal(locateHumanReviewRequest(root, prepared.taskId!, "session-new", request.requestId)?.request.status, "resumed");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
