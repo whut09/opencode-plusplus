@@ -25,6 +25,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 | Operate the CLI (developer surface)                 | [CLI Reference](reference/cli-reference.md)                                           |
 | Configure evidence trust                            | [Configuration](reference/config.md)                                                  |
 | Choose minimal verification commands                | [Smart Verification Planner](reference/verification-planner.md)                       |
+| Resume an unfinished Desktop task safely            | [Task Resume And Recovery](reference/task-resume.md)                                  |
 | Understand native permission versus semantic guards | [Permission And Guard Boundaries](reference/permission-boundaries.md)                 |
 | Rate Context quality without sending source code    | [Context Feedback](reference/context-feedback.md)                                     |
 | Build and publish releases                          | [Release Checklist](release.md)                                                       |
@@ -39,6 +40,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 - [Integration Modes](concepts/integration-modes.md)
 - [Loop Engineering](concepts/loop-engineering.md)
 - [Human Review](concepts/human-review.md)
+- [Task Resume And Recovery](reference/task-resume.md)
 
 ## Windows and Integrations
 
@@ -74,6 +76,7 @@ Read these in order if OpenCode++ is new to you: install the Windows plugin, und
 - [Permission And Guard Boundaries](reference/permission-boundaries.md)
 - [Context Feedback](reference/context-feedback.md)
 - [Harness Output](reference/harness-output.md)
+- [Task Resume And Recovery](reference/task-resume.md)
 - [Release Checklist](release.md)
 - [Roadmap](roadmap.md)
 

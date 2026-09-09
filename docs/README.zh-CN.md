@@ -25,6 +25,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 | 使用 CLI（开发者面）                  | [CLI 参考](reference/cli-reference.zh-CN.md)                            |
 | 配置证据可信等级                      | [配置参考](reference/config.zh-CN.md)                                   |
 | 选择最小验证命令                      | [Smart Verification Planner](reference/verification-planner.zh-CN.md)   |
+| 安全恢复未完成 Desktop 任务           | [任务恢复与续接](reference/task-resume.zh-CN.md)                        |
 | 理解原生权限与语义 Guard 的分层       | [Permission 与 Guard 边界](reference/permission-boundaries.zh-CN.md)    |
 | 在不发送源码的前提下评价 Context 质量 | [Context Feedback](reference/context-feedback.zh-CN.md)                 |
 | 构建和发布                            | [发布检查](release.zh-CN.md)                                            |
@@ -40,6 +41,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 - [集成模式](concepts/integration-modes.zh-CN.md)
 - [Loop Engineering](concepts/loop-engineering.zh-CN.md)
 - [Human Review 与人工介入](concepts/human-review.zh-CN.md)
+- [任务恢复与续接](reference/task-resume.zh-CN.md)
 - [源码导读](developer/source-walkthrough.zh-CN.md)
 - [运行时状态机](developer/runtime-state-machine.zh-CN.md)
 - [Guard Gate Schema](developer/guard-gate-schema.zh-CN.md)
@@ -64,6 +66,7 @@ OpenCode++ 是面向官方 OpenCode Desktop 的 Windows Harness 插件。安装 
 - [Permission 与 Guard 边界](reference/permission-boundaries.zh-CN.md)
 - [Context Feedback](reference/context-feedback.zh-CN.md)
 - [Harness 输出](reference/harness-output.zh-CN.md)
+- [任务恢复与续接](reference/task-resume.zh-CN.md)
 - [Roadmap](roadmap.zh-CN.md)
 
 每个英文人工维护页旁边都有 .zh-CN.md 中文页。CLI help snapshot 是机器生成的规范输出，中文 CLI 参考说明相同命令组并链接到该快照。

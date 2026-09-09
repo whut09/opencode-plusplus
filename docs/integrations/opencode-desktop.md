@@ -49,6 +49,14 @@ This is an explainability view of recorded system facts and deterministic decisi
 
 The model still performs the actual reading, editing, and command execution. OpenCode++ provides the context, rules, evidence, and decision tools. It does not start a second model or invoke its CLI from the Desktop plugin.
 
+### Resume An Interrupted Task
+
+When a new OpenCode++ Desktop session opens the same repository, the plugin records compatible unfinished tasks as resume candidates. It does not automatically take over an old task. Call `opencode_plusplus_resume` with `action: inspect` to view candidates. A same-repository candidate with the same working-tree fingerprint can be resumed only with `confirmed: true`; the new session then continues at evaluation and must collect current verification before finalizing.
+
+If the working tree changed, OpenCode++ marks the old identity `stale-task` and an explicitly confirmed resume rebuilds context and the validation plan against the current tree. A candidate from another repository is diagnostic only and is never restored. A pending human-review request can be approved from a newer session; approval updates the boundary and returns the existing task to `dirty`, so the next evaluate recollects evidence without restarting the task.
+
+See [Task Resume And Recovery](../reference/task-resume.md) for identity fields, matching rules, and the state diagram.
+
 ## Permission And Guard Separation
 
 The verified OpenCode Desktop baseline is `@opencode-ai/plugin` `1.18.18`. The installed OpenCode++ primary agent uses only that version's supported permission keys: `edit`, `bash`, `webfetch`, `doom_loop`, and `external_directory`. It does not add unsupported `read` or `search` fields, and it does not override ordinary `edit` behavior.

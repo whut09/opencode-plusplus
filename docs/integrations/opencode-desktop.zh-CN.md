@@ -49,6 +49,14 @@ agent 文件是标准 OpenCode `mode: primary` agent。OpenCode 会从全局 `ag
 
 真正读文件、改代码和执行命令的仍是当前 OpenCode 模型。OpenCode++ 提供 context、规则、证据和决策工具；Desktop 插件不会启动第二个模型，也不会调用自己的 CLI。
 
+### 恢复中断任务
+
+当新的 OpenCode++ Desktop session 打开同一个仓库时，插件会把兼容的未完成任务记录为恢复候选，但不会自动接管旧任务。调用 `opencode_plusplus_resume` 的 `action: inspect` 查看候选。只有同一仓库且工作树指纹相同的候选，在设置 `confirmed: true` 后才能恢复；新 session 会从 evaluate 继续，并且 finalize 前仍必须采集当前验证证据。
+
+如果工作树发生变化，OpenCode++ 会把旧身份标记为 `stale-task`；明确确认后会针对当前工作树重新构建 context 和 validation plan。同一仓库之外的候选只提供诊断，永远不会恢复。待处理的 human-review 请求可以在新 session 中批准；批准会更新 boundary，并把现有任务恢复为 `dirty`，下一次 evaluate 重新采集证据，不会从头重启任务。
+
+详见[任务恢复与续接](../reference/task-resume.zh-CN.md)，其中包含身份字段、匹配规则和状态图。
+
 ## Permission 与 Guard 分层
 
 已验证的 OpenCode Desktop 基线是 `@opencode-ai/plugin` `1.18.18`。安装后的 OpenCode++ primary agent 只使用该版本支持的 permission 键：`edit`、`bash`、`webfetch`、`doom_loop` 和 `external_directory`。它不添加不受支持的 `read` 或 `search` 字段，也不覆盖普通 `edit` 行为。
