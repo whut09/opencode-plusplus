@@ -3,6 +3,7 @@ import { hashText } from "../evidence.js";
 import { currentSidecarWorkingTreeHash } from "../worktree-hash.js";
 import type { PluginWorkflowState } from "./types.js";
 import path from "node:path";
+import { synchronizeTaskResumeCandidates } from "./task-resume.js";
 
 export function workflowStatePath(root: string, sessionId: string): string {
   return path.join(root, ".agent-context", "sidecar", `plugin-workflow-${hashText(sessionId).slice(0, 16)}.json`);
@@ -43,6 +44,25 @@ export function initializeWorkflowState(root: string, sessionId: string): Plugin
     updatedAt: new Date().toISOString()
   };
   return updateJsonAtomic<PluginWorkflowState>(workflowStatePath(root, sessionId), (current) => current ?? state);
+}
+
+export function refreshWorkflowResumeCandidates(root: string, sessionId: string): PluginWorkflowState | undefined {
+  const existing = readWorkflowState(root, sessionId);
+  if (!existing) return undefined;
+  const discovered = synchronizeTaskResumeCandidates(root, { currentSessionId: sessionId });
+  const nextCandidates = discovered.candidates;
+  const previousCandidates = existing.resumeCandidates ?? [];
+  if (JSON.stringify(previousCandidates) === JSON.stringify(nextCandidates)) return existing;
+  return updateJsonAtomic<PluginWorkflowState>(workflowStatePath(root, sessionId), (state) => {
+    if (!state) throw new Error(`Plugin workflow state disappeared for session ${sessionId}.`);
+    return {
+      ...state,
+      schemaVersion: 1,
+      revision: (state.revision ?? 0) + 1,
+      resumeCandidates: nextCandidates,
+      updatedAt: new Date().toISOString()
+    };
+  });
 }
 
 export function updateWorkflowState(root: string, sessionId: string, update: Partial<PluginWorkflowState> & { eventKey?: string }): PluginWorkflowState {

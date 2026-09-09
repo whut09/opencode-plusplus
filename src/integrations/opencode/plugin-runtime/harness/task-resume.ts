@@ -29,6 +29,10 @@ export interface TaskResumeDiscoveryResult {
   issues: Array<{ path: string; message: string }>;
 }
 
+export interface TaskResumeSynchronizationResult extends TaskResumeDiscoveryResult {
+  staleTaskIds: string[];
+}
+
 export function taskIdentityPath(root: string, taskId: string, sessionId: string): string {
   return path.join(root, ".agent-context", "sidecar", `task-identity-${taskSlug(taskId)}-${taskSlug(sessionId)}.json`);
 }
@@ -115,6 +119,28 @@ export function discoverTaskResumeCandidates(root: string, options: TaskResumeDi
     .map((identity) => classifyTaskIdentityAtFingerprint(root, identity, currentWorkingTreeFingerprint))
     .sort(compareResumeCandidate);
   return { currentWorkingTreeFingerprint, candidates, issues: discovered.issues };
+}
+
+export function synchronizeTaskResumeCandidates(root: string, options: TaskResumeDiscoveryOptions = {}): TaskResumeSynchronizationResult {
+  const discovered = discoverTaskResumeCandidates(root, options);
+  const staleTaskIds = new Set<string>();
+  const candidates = discovered.candidates.map((candidate) => {
+    if (candidate.compatibility !== "stale-task") return candidate;
+    staleTaskIds.add(candidate.identity.taskId);
+    if (candidate.identity.status === "stale-task" && candidate.identity.latestWorkingTreeFingerprint === discovered.currentWorkingTreeFingerprint) {
+      return candidate;
+    }
+    try {
+      const identity = markTaskIdentityStale(root, candidate.identity, discovered.currentWorkingTreeFingerprint);
+      return { ...candidate, identity, currentWorkingTreeFingerprint: discovered.currentWorkingTreeFingerprint };
+    } catch (error) {
+      return {
+        ...candidate,
+        reason: `${candidate.reason} The stale-task marker could not be persisted: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  });
+  return { ...discovered, candidates, staleTaskIds: [...staleTaskIds].sort((left, right) => left.localeCompare(right)) };
 }
 
 export function markTaskIdentityStale(root: string, identity: TaskIdentity, currentWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root)): TaskIdentity {

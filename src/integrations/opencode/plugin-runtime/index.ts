@@ -20,7 +20,7 @@ import { createIdleVerifier } from "./idle-verify.js";
 import { normalizeToolExecuteAfter, normalizeToolExecuteBefore } from "./hook-input.js";
 import { commandFromTool, pathsFromTool } from "./paths.js";
 import { createSessionLifecycle } from "./session-lifecycle.js";
-import { initializeWorkflowState, readWorkflowState, updateWorkflowState } from "./harness/workflow.js";
+import { initializeWorkflowState, readWorkflowState, refreshWorkflowResumeCandidates, updateWorkflowState } from "./harness/workflow.js";
 import {
   defaultOpenCodePlusPlusStateFile,
   readOpenCodePlusPlusPluginStatus,
@@ -348,7 +348,8 @@ export async function createOpenCodePlusPlusSidecar(
 
   function safeInitializeWorkflow(sessionId: string) {
     try {
-      return initializeWorkflowState(context.directory, sessionId);
+      const workflow = initializeWorkflowState(context.directory, sessionId);
+      return refreshWorkflowResumeCandidates(context.directory, sessionId) ?? workflow;
     } catch (error) {
       recorder.log("debug", "workflow initialization failed safely", { sessionId, message: error instanceof Error ? error.message : String(error) });
       const current = currentSidecarWorkingTreeHash(context.directory);
