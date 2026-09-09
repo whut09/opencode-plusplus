@@ -11,6 +11,7 @@ import type {
   PluginNextArgs,
   PluginPrepareArgs,
   PluginRetrieveArgs
+  ,PluginResumeArgs
 } from "./types.js";
 
 export function parseContextSearchArgs(args: unknown): PluginContextSearchArgs | string {
@@ -111,6 +112,24 @@ export function parseHumanReviewArgs(args: unknown): PluginHumanReviewArgs | str
     ...(taskId ? { taskId } : {}),
     ...(sessionId ? { sessionId } : {}),
     ...(requestId ? { requestId } : {})
+  };
+}
+
+export function parseResumeArgs(args: unknown): PluginResumeArgs | string {
+  const record = asRecord(args);
+  const action = record.action === "inspect" || record.action === "resume" ? record.action : undefined;
+  if (!action) return 'resume action must be "inspect" or "resume".';
+  if (record.confirmed !== undefined && typeof record.confirmed !== "boolean") return "resume confirmed must be boolean.";
+  const taskId = readOptionalString(record.taskId);
+  const sourceSessionId = readOptionalString(record.sourceSessionId);
+  const sessionId = readOptionalSessionId(record.sessionId);
+  if (action === "resume" && record.confirmed !== true) return "resume requires confirmed=true for an explicit recovery decision.";
+  return {
+    action,
+    ...(taskId ? { taskId } : {}),
+    ...(sourceSessionId ? { sourceSessionId } : {}),
+    ...(sessionId ? { sessionId } : {}),
+    ...(record.confirmed === true ? { confirmed: true } : {})
   };
 }
 

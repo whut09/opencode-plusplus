@@ -11,6 +11,7 @@ export const OPENCODE_PLUSPLUS_PLUGIN_TOOL_NAMES = [
   "opencode_plusplus_interventions",
   "opencode_plusplus_context_feedback",
   "opencode_plusplus_human_review",
+  "opencode_plusplus_resume",
   "opencode_plusplus_evaluate",
   "opencode_plusplus_next"
 ] as const;

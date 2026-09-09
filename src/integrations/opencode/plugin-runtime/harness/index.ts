@@ -10,6 +10,7 @@ import {
   parseNextArgs,
   parsePrepareArgs,
   parseRetrieveArgs
+  ,parseResumeArgs
 } from "./args.js";
 import { harnessFailureMessage } from "./error.js";
 import { evaluatePluginHarness } from "./evaluate.js";
@@ -44,6 +45,7 @@ export {
   parseNextArgs,
   parsePrepareArgs,
   parseRetrieveArgs
+  ,parseResumeArgs
 } from "./args.js";
 export { parseHumanReviewArgs } from "./args.js";
 export { renderEvaluateText, renderHarnessError, renderNextText, renderPrepareText, renderRetrieveText } from "./format.js";

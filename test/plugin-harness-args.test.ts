@@ -11,6 +11,7 @@ import {
   parseNextArgs,
   parsePrepareArgs,
   parseRetrieveArgs
+  ,parseResumeArgs
 } from "../src/integrations/opencode/plugin-runtime/harness/args.js";
 
 test("plugin harness arg parsers reject empty tasks and accept optional fields", () => {
@@ -51,6 +52,15 @@ test("plugin harness arg parsers reject empty tasks and accept optional fields",
     parseFeedbackArgs({ entryId: "official/auth", source: "official", revision: 2, target: "file", label: "useful" }),
     "file feedback requires file."
   );
+  assert.deepEqual(parseResumeArgs({ action: "inspect", sessionId: "new-session" }), { action: "inspect", sessionId: "new-session" });
+  assert.deepEqual(parseResumeArgs({ action: "resume", taskId: "fix-auth", sourceSessionId: "old", confirmed: true }), {
+    action: "resume",
+    taskId: "fix-auth",
+    sourceSessionId: "old",
+    confirmed: true
+  });
+  assert.equal(parseResumeArgs({ action: "resume" }), "resume requires confirmed=true for an explicit recovery decision.");
+  assert.match(String(parseResumeArgs({ action: "inspect", confirmed: "yes" })), /confirmed/);
 });
 
 test("Context tool arg parsers normalize filters and reject malformed selectors", () => {
