@@ -56,13 +56,15 @@ Smoke test with an isolated --config-dir:
 5. load or syntax-check the installed plugin;
 6. uninstall and confirm only owned files are removed;
 7. run `npm run test:installer:windows` and enforce the 12 MiB installer size budget;
-8. run `npm run release:verify:desktop` to verify the EXE, SHA256, release manifest, standalone plugin load, mode path, legacy cleanup, and uninstall restoration;
+8. run `npm run release:verify:desktop` to verify the EXE, SHA256, release manifest, standalone plugin load, mode path, legacy cleanup, uninstall restoration, and installer health/repair metadata;
 9. run `npm run benchmark:desktop`; it is a deterministic in-process plugin benchmark with zero paid model calls;
 10. use the manual `Desktop smoke` workflow to install the official `SST.OpenCodeDesktop` winget package and run `npm run test:desktop:real` against it.
 
 PR CI runs on Ubuntu and Windows. It never runs a paid executor. Linux verifies the npm developer package and deterministic proxy benchmarks; Windows builds the EXE, runs the installer/recovery gate, and runs the deterministic Desktop plugin benchmark. Real Desktop launch is manual only; the workflow installs the official Desktop package before launching it. The manual release workflow requires the same launch gate before assets are uploaded or published.
 
 The default release path is offline. No remote Context Registry source or feedback transport is required for build, installer smoke, or deterministic benchmarks. If a release test enables a remote source, record its URL, timeout, size limit, content hash, and offline fallback behavior. Network failure, invalid registry data, permission denial, read-only repositories, non-ASCII Windows paths, and transient file locks must produce a diagnosable failure or review result, never a false pass.
+
+The Windows installer performs a preflight before every mutating action. A running `OpenCode.exe`, invalid config path, unwritable target, or corrupt state blocks installation before any owned file is changed. `--doctor --json` is read-only; `--repair --json` restores only the plugin, primary agent, runtime state, manifest, and legacy files owned by OpenCode++. It must preserve a valid enabled state and must not rewrite user OpenCode configuration. The install dialog reports the version, config path, plugin/agent result, and restart/select/use steps instead of only saying “restart”.
 
 ## Publish Verification
 

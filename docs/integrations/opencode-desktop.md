@@ -19,6 +19,21 @@ OpenCode++ is installed into the official OpenCode Desktop as a global user-leve
 
 The installer is per-user and does not require Administrator permission. It uses `%USERPROFILE%\.config\opencode` by default and honors `OPENCODE_CONFIG_DIR` when set.
 
+## Health, Repair, And Safe Upgrades
+
+Before a mutating operation, the installer checks the active OpenCode config path, plugin target, primary agent target, existing installation version, generated state/manifest files, and whether `OpenCode.exe` is running. If OpenCode Desktop is detected, the installer stops before writing and tells you to fully exit it; it never silently installs a plugin that the running process cannot reload.
+
+The EXE keeps the existing `install`, `uninstall`, `enable`, `disable`, and `status` behavior and adds two diagnostic actions. These flags are for maintenance or support; normal users should continue to double-click the EXE:
+
+```powershell
+opencode-plusplus-setup-win-x64.exe --doctor --json
+opencode-plusplus-setup-win-x64.exe --repair --json
+```
+
+`--doctor` is read-only and reports the version, config path, plugin and agent targets, enabled state, manifest/runtime-state diagnostics, detected OpenCode process, problems, and recommended actions. `--repair` refreshes only OpenCode++-owned plugin, `agents/opencode-plusplus.md`, state, manifest, and legacy files. It preserves a valid enabled/disabled setting, can recreate recoverable generated metadata, and never rewrites the user's OpenCode config. After install or repair, restart OpenCode Desktop and select **OpenCode++** again.
+
+If the state or manifest is corrupt, a normal install stops before changing any file. Run `--doctor --json`, close OpenCode Desktop, then use `--repair`; an unrecoverable error is reported instead of being treated as an empty installation.
+
 ## What Gets Installed
 
 ```text

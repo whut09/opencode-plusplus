@@ -34,11 +34,13 @@ npm run release:verify:desktop
 
 Windows 安装器构建必须在 Windows + Node.js 20+ 和 .NET Framework 4.x 构建工具环境执行。esbuild 压缩插件，gzip 生成 payload，再由 Windows C# 编译器嵌入 EXE，并生成 `.sha256` 与 `opencode-plusplus-release.json`。发布前运行 `npm run test:installer:windows`，验证安装、primary mode、disable、enable、插件加载、旧文件清理和 12 MiB 体积上限。
 
-`npm run release:verify` 只校验 npm 开发包，因此可以在没有安装器输出的干净 checkout 中运行。安装器构建后，`npm run release:verify:desktop` 继续核对 EXE 存在、大小、SHA256、manifest、独立 plugin bundle 加载、mode 路径、旧文件清理与卸载恢复。`npm run benchmark:desktop` 是确定性的进程内插件 benchmark，付费模型调用数固定为 0。
+`npm run release:verify` 只校验 npm 开发包，因此可以在没有安装器输出的干净 checkout 中运行。安装器构建后，`npm run release:verify:desktop` 继续核对 EXE 存在、大小、SHA256、manifest、独立 plugin bundle 加载、mode 路径、旧文件清理、卸载恢复和 installer health/repair metadata。`npm run benchmark:desktop` 是确定性的进程内插件 benchmark，付费模型调用数固定为 0。
 
 PR CI 同时运行 Ubuntu 和 Windows，绝不调用付费 executor。Linux 验证 npm 开发包和确定性 proxy benchmark；Windows 构建 EXE、执行安装/恢复 gate，并运行 Desktop plugin benchmark。真实 Desktop 启动只通过手动 `Desktop smoke` workflow：先用 winget 安装官方 `SST.OpenCodeDesktop`，再运行 `npm run test:desktop:real`。手动 Desktop release workflow 在上传或发布资产前也强制通过同一启动 gate。
 
 默认发布流程离线运行，不要求远程 Context Registry source 或 feedback transport。若发布测试显式开启远程 source，必须记录 URL、超时、大小限制、内容 hash 和离线 fallback 行为。网络失败、registry 内容非法、权限拒绝、只读仓库、Windows 非 ASCII 路径和文件短暂占用，都必须返回可诊断失败或 review，不能伪造成功。
+
+Windows 安装器会在每个修改动作前执行预检。检测到正在运行的 `OpenCode.exe`、无效配置路径、不可写目标或损坏 state 时，会在修改任何自有文件前阻止安装。`--doctor --json` 是只读诊断；`--repair --json` 只恢复 OpenCode++ 自己拥有的 plugin、primary agent、runtime state、manifest 和旧文件，必须保留有效的启用状态，也不能重写用户的 OpenCode 配置。安装对话框会显示版本、配置路径、plugin/agent 结果以及重启、选择和使用步骤，而不再只显示“请重启”。
 
 ## 版本和包边界
 

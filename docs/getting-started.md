@@ -40,6 +40,8 @@ The current model may provide a natural-language task summary, but that summary 
 
 Fully exit OpenCode Desktop before installing or upgrading. After restarting, check the mode picker again. The installer writes to `%USERPROFILE%\.config\opencode` unless `OPENCODE_CONFIG_DIR` is set. The plugin is loaded from the active OpenCode configuration directory; installing the EXE while another Desktop process is still running does not refresh an already loaded plugin.
 
+If an upgrade reports a damaged state or the mode still does not appear, run the EXE with `--doctor --json` from PowerShell for a read-only diagnosis, then use `--repair --json` after closing OpenCode Desktop. Repair only restores OpenCode++-owned files; it does not overwrite your OpenCode configuration.
+
 ## When To Customize
 
 Use the default mode first. Fork or extend the plugin when your repository needs different protected paths, test trust, retrieval weighting, evidence policy, or loop stopping rules. Add a test for the new rule and keep the Windows installer and bilingual docs synchronized.

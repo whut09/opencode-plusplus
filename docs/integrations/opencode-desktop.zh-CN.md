@@ -19,6 +19,21 @@ OpenCode++ 作为全局用户级插件安装到官方 OpenCode Desktop。用户�
 
 安装器按当前用户安装，不需要管理员权限。默认使用 `%USERPROFILE%\.config\opencode`；设置 `OPENCODE_CONFIG_DIR` 时优先使用它。
 
+## 健康检查、修复和安全升级
+
+在任何会修改文件的操作前，安装器都会检查当前生效的 OpenCode 配置目录、插件目标、primary agent 目标、已有安装版本、生成的 state/manifest 文件，以及 `OpenCode.exe` 是否正在运行。如果检测到 OpenCode Desktop，安装器会在写入前停止并明确提示先完全退出；不会静默安装一个正在运行的进程无法重新加载的插件。
+
+EXE 继续兼容 `install`、`uninstall`、`enable`、`disable` 和 `status`，并增加两个诊断动作。下面参数只用于维护或排查；普通用户仍然只需双击 EXE：
+
+```powershell
+opencode-plusplus-setup-win-x64.exe --doctor --json
+opencode-plusplus-setup-win-x64.exe --repair --json
+```
+
+`--doctor` 是只读检查，会报告版本、配置路径、插件和 agent 目标、启用状态、manifest/runtime state 诊断、检测到的 OpenCode 进程、问题和建议动作。`--repair` 只刷新 OpenCode++ 自己拥有的 plugin、`agents/opencode-plusplus.md`、state、manifest 和旧文件；会保留有效的启用/关闭状态，可以重建可恢复的生成 metadata，但不会重写用户自己的 OpenCode 配置。安装或修复后，重启 OpenCode Desktop，再重新选择 **OpenCode++**。
+
+如果 state 或 manifest 已损坏，普通安装会在修改任何文件前停止。请运行 `--doctor --json`，关闭 OpenCode Desktop，再使用 `--repair`；无法恢复时会返回明确错误，不会把损坏状态当成空安装。
+
 ## 安装内容
 
 ```text

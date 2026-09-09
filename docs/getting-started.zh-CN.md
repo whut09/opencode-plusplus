@@ -40,6 +40,8 @@ OpenCode++ 是 OpenCode Desktop 的 Windows 插件，适合“看起来合理”
 
 安装或升级前必须完全退出 OpenCode Desktop。重启后再查看模式选择器。安装器默认写入 `%USERPROFILE%\.config\opencode`；设置 `OPENCODE_CONFIG_DIR` 时使用该目录。插件从当前生效的 OpenCode 配置目录加载；如果安装时 Desktop 仍在运行，已经加载的旧插件不会自动刷新。
 
+如果升级报告 state 损坏，或重启后仍看不到模式，可以在 PowerShell 中用 EXE 执行 `--doctor --json` 做只读诊断；关闭 OpenCode Desktop 后，再执行 `--repair --json`。修复只恢复 OpenCode++ 自己拥有的文件，不会覆盖你的 OpenCode 配置。
+
 ## 什么时候定制
 
 先使用默认模式。仓库如果需要不同的受保护路径、测试可信度、retrieval 权重、evidence policy 或循环停止规则，可以 fork 或扩展插件。为新规则增加测试，并保持 Windows 安装器和中英文文档同步。
