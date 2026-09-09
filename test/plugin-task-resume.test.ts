@@ -6,7 +6,7 @@ import test from "node:test";
 import { runGit } from "../src/core/git.js";
 import { createOpenCodePlusPlusSidecar } from "../src/integrations/opencode/plugin-runtime/index.js";
 import { readTaskIdentity } from "../src/integrations/opencode/plugin-runtime/harness/task-resume.js";
-import { readWorkflowState } from "../src/integrations/opencode/plugin-runtime/harness/workflow.js";
+import { initializeWorkflowState, readWorkflowState } from "../src/integrations/opencode/plugin-runtime/harness/workflow.js";
 import { writePluginEvaluateState } from "../src/integrations/opencode/plugin-runtime/harness/session.js";
 import { locateHumanReviewRequest, upsertHumanReviewRequest } from "../src/integrations/opencode/plugin-runtime/harness/human-review.js";
 
@@ -16,6 +16,7 @@ test("Desktop resume inspects and restores a compatible unfinished task into a n
     const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
     const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
     const prepared = readResult(await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-old" }));
+    initializeWorkflowState(root, "session-new");
     assert.equal(prepared.ok, true);
 
     const inspected = readResult(await tools.opencode_plusplus_resume.execute({ action: "inspect", sessionId: "session-new" }));

@@ -97,7 +97,8 @@ export function resumeWorkflowState(
       if (existing.taskId && existing.taskId !== identity.taskId) {
         throw new Error(`Session ${targetSessionId} is already associated with task ${existing.taskId}.`);
       }
-      return existing;
+      if (existing.taskId === identity.taskId && existing.resumedFromSessionId === sourceSessionId) return existing;
+      return { ...resumed, revision: (existing.revision ?? 0) + 1 };
     }
     return resumed;
   });
