@@ -87,6 +87,38 @@ test("changed working tree is classified as stale-task", () => {
   }
 });
 
+test("working-tree fingerprint includes untracked file content", () => {
+  const root = createGitFixture("untracked-content");
+  try {
+    const filePath = path.join(root, "src", "new-login.ts");
+    const before = currentSidecarWorkingTreeHash(root);
+    writeFileSync(filePath, "export const login = 'first';\n", "utf8");
+    const first = currentSidecarWorkingTreeHash(root);
+    writeFileSync(filePath, "export const login = 'second';\n", "utf8");
+    const second = currentSidecarWorkingTreeHash(root);
+
+    assert.notEqual(first, before);
+    assert.notEqual(second, first);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("working-tree fingerprint is independent of staging state", () => {
+  const root = createGitFixture("staging");
+  try {
+    const filePath = path.join(root, "src", "login.ts");
+    writeFileSync(filePath, "export const login = 'changed';\n", "utf8");
+    const unstaged = currentSidecarWorkingTreeHash(root);
+    runGit(root, ["add", "src/login.ts"]);
+    const staged = currentSidecarWorkingTreeHash(root);
+
+    assert.equal(staged, unstaged);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("identity discovery retains repository mismatches and diagnoses corruption", () => {
   const root = createGitFixture("discovery");
   try {
