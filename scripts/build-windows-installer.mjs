@@ -16,6 +16,7 @@ const installerSource = path.join(staging, "windows-installer.generated.cs");
 const executable = path.join(release, "opencode-plusplus-setup-win-x64.exe");
 const releaseManifest = path.join(release, "opencode-plusplus-release.json");
 const maximumInstallerBytes = 12 * 1024 * 1024;
+const packageVersion = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version;
 
 rmSync(staging, { recursive: true, force: true });
 mkdirSync(staging, { recursive: true });
@@ -38,6 +39,7 @@ await build({
   legalComments: "none"
 });
 
+writeFileSync(pluginPath, `${readFileSync(pluginPath, "utf8")}\n// OPENCODE_PLUS_PLUS_PLUGIN_VERSION: ${packageVersion}\n`, "utf8");
 const pluginModule = await import(`${pathToFileURL(pluginPath).href}?build=${Date.now()}`);
 const pluginExports = [...new Set(Object.values(pluginModule))];
 if (pluginExports.length !== 1 || typeof pluginExports[0] !== "function") {
@@ -46,7 +48,6 @@ if (pluginExports.length !== 1 || typeof pluginExports[0] !== "function") {
 
 const pluginGzip = gzipSync(readFileSync(pluginPath), { level: 9 });
 writeFileSync(pluginGzipPath, pluginGzip);
-const packageVersion = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version;
 writeFileSync(installerSource, readFileSync(installerTemplate, "utf8").replaceAll("__PACKAGE_VERSION__", packageVersion), "utf8");
 
 const csc = findCsc();
