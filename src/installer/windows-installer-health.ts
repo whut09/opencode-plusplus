@@ -21,6 +21,7 @@ export type WindowsInstallerHealthProblemCode =
   | "STATE_MISSING"
   | "STATE_CORRUPT"
   | "STATE_SCHEMA_UNSUPPORTED"
+  | "STATE_VERSION_MISMATCH"
   | "MANIFEST_MISSING"
   | "MANIFEST_CORRUPT"
   | "MANIFEST_MISMATCH";
@@ -70,10 +71,7 @@ export interface WindowsInstallerHealthOptions {
   isOpenCodeDesktopRunning?: () => boolean;
 }
 
-export function inspectWindowsOpenCodeInstallation(
-  paths: WindowsInstallPaths,
-  options: WindowsInstallerHealthOptions = {}
-): WindowsInstallerHealthReport {
+export function inspectWindowsOpenCodeInstallation(paths: WindowsInstallPaths, options: WindowsInstallerHealthOptions = {}): WindowsInstallerHealthReport {
   const version = getOpenCodePlusplusPackageVersion();
   const stateStatus = readOpenCodePlusPlusPluginStatus(paths.stateFile);
   const runtimeState = readRuntimeState(paths.stateFile, stateStatus);
@@ -86,6 +84,7 @@ export function inspectWindowsOpenCodeInstallation(
   const agentSource = agentInstalled ? readText(paths.agentFile) : null;
   const agentValid = agentSource !== null && /^mode:\s*primary\s*$/m.test(agentSource) && agentSource.includes("opencode_plusplus_prepare");
   const openCodeProcessDetected = (options.isOpenCodeDesktopRunning ?? isOpenCodeDesktopRunning)();
+  const configDirectoryWritable = canWriteConfigPath(paths.configDir);
   const problems: WindowsInstallerHealthProblem[] = [];
 
   if (!isDirectoryOrMissing(paths.configDir)) {
@@ -96,7 +95,7 @@ export function inspectWindowsOpenCodeInstallation(
       path: paths.configDir
     });
   }
-  if (existsSync(paths.configDir) && !canWriteDirectory(paths.configDir)) {
+  if (!configDirectoryWritable) {
     problems.push({
       code: "CONFIG_PATH_UNWRITABLE",
       severity: "error",
@@ -164,6 +163,13 @@ export function inspectWindowsOpenCodeInstallation(
       message: runtimeState.diagnostic ?? "The OpenCode++ runtime state schema is unsupported.",
       path: paths.stateFile
     });
+  } else if (runtimeState.version !== null && runtimeState.version !== version) {
+    problems.push({
+      code: "STATE_VERSION_MISMATCH",
+      severity: "error",
+      message: `The runtime state is version ${runtimeState.version}, but this installer is version ${version}.`,
+      path: paths.stateFile
+    });
   }
   if (manifest.status === "missing") {
     problems.push({ code: "MANIFEST_MISSING", severity: "error", message: "The OpenCode++ installation manifest is missing.", path: paths.manifestFile });
@@ -195,7 +201,7 @@ export function inspectWindowsOpenCodeInstallation(
     stateFile: paths.stateFile,
     manifestFile: paths.manifestFile,
     configDirectoryExists: existsSync(paths.configDir),
-    configDirectoryWritable: !existsSync(paths.configDir) || canWriteDirectory(paths.configDir),
+    configDirectoryWritable,
     openCodeProcessDetected,
     existingInstallationVersion: manifest.version ?? runtimeState.version,
     pluginInstalled,
@@ -207,7 +213,7 @@ export function inspectWindowsOpenCodeInstallation(
     manifest,
     runtimeState,
     problems,
-    recommendedActions: recommendedActions(problems, installed)
+    recommendedActions: recommendedActions(problems, installed, openCodeProcessDetected)
   };
 }
 
@@ -224,7 +230,7 @@ export function assertWindowsInstallerMutationAllowed(
   if (action === "install" && health.problems.some((problem) => problem.code === "STATE_CORRUPT" || problem.code === "MANIFEST_CORRUPT")) {
     const damaged = health.problems
       .filter((problem) => problem.code === "STATE_CORRUPT" || problem.code === "MANIFEST_CORRUPT")
-      .map((problem) => problem.code === "STATE_CORRUPT" ? "corrupt state file" : "corrupt installation manifest")
+      .map((problem) => (problem.code === "STATE_CORRUPT" ? "corrupt state file" : "corrupt installation manifest"))
       .join(" and ");
     throw new Error(`Cannot install over ${damaged}. Run --repair first, or use --doctor --json for details.`);
   }
@@ -341,13 +347,36 @@ function canWriteDirectory(directory: string): boolean {
   }
 }
 
-function recommendedActions(problems: WindowsInstallerHealthProblem[], installed: boolean): string[] {
+function recommendedActions(problems: WindowsInstallerHealthProblem[], installed: boolean, openCodeProcessDetected: boolean): string[] {
+  if (problems.some((problem) => problem.code === "CONFIG_PATH_INVALID")) return ["Set OPENCODE_CONFIG_DIR to a directory used by OpenCode Desktop."];
+  if (problems.some((problem) => problem.code === "CONFIG_PATH_UNWRITABLE")) return ["Choose a writable OpenCode config directory or fix its permissions."];
   if (!installed) return ["Run the OpenCode++ Windows installer."];
   if (problems.some((problem) => problem.code === "STATE_CORRUPT" || problem.code === "MANIFEST_CORRUPT")) {
-    return ["Close OpenCode Desktop, then run the installer with --repair.", "Use --doctor --json to inspect the diagnostic report."];
+    return [
+      ...(openCodeProcessDetected ? ["Fully exit OpenCode Desktop before changing the installation."] : []),
+      "Run the installer with --repair.",
+      "Use --doctor --json to inspect the diagnostic report."
+    ];
   }
-  if (problems.length > 0) return ["Close OpenCode Desktop, then run the installer with --repair.", "Restart OpenCode Desktop after repair."];
+  if (problems.length > 0) {
+    return [
+      ...(openCodeProcessDetected ? ["Fully exit OpenCode Desktop before changing the installation."] : []),
+      "Run the installer with --repair.",
+      "Restart OpenCode Desktop after repair."
+    ];
+  }
   return ["Restart OpenCode Desktop after changing enabled state or upgrading the plugin."];
+}
+
+function canWriteConfigPath(directory: string): boolean {
+  if (existsSync(directory)) return canWriteDirectory(directory);
+  let current = path.resolve(directory);
+  while (!existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+  return canWriteDirectory(current);
 }
 
 function stringValue(value: unknown): string | null {

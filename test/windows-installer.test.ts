@@ -17,7 +17,10 @@ import { getOpenCodePlusplusPackageVersion } from "../src/core/package-info.js";
 
 const payload = {
   pluginGzipBase64: gzipSync(
-    Buffer.from(`export async function OpenCodePlusPlusGlobalPlugin() {}\n// OPENCODE_PLUS_PLUS_PLUGIN_VERSION: ${getOpenCodePlusplusPackageVersion()}\n`, "utf8")
+    Buffer.from(
+      `export async function OpenCodePlusPlusGlobalPlugin() {}\n// OPENCODE_PLUS_PLUS_PLUGIN_VERSION: ${getOpenCodePlusplusPackageVersion()}\n`,
+      "utf8"
+    )
   ).toString("base64")
 };
 const testInstallerOptions = { isOpenCodeDesktopRunning: () => false };
@@ -74,10 +77,7 @@ test("installer preflight stops before writing when OpenCode Desktop is running"
   try {
     const health = getWindowsOpenCodePluginHealth(configDir, { isOpenCodeDesktopRunning: () => true });
     assert.equal(health.openCodeProcessDetected, true);
-    assert.throws(
-      () => installWindowsOpenCodePlugin(payload, configDir, { isOpenCodeDesktopRunning: () => true }),
-      /Fully exit OpenCode Desktop/
-    );
+    assert.throws(() => installWindowsOpenCodePlugin(payload, configDir, { isOpenCodeDesktopRunning: () => true }), /Fully exit OpenCode Desktop/);
     assert.equal(existsSync(path.join(configDir, "plugins", "opencode-plusplus.js")), false);
     assert.equal(existsSync(path.join(configDir, "agents", "opencode-plusplus.md")), false);
   } finally {
@@ -90,7 +90,7 @@ test("installer preflight refuses corrupt state without leaving a partial instal
   const stateFile = path.join(configDir, "opencode-plusplus", "state.json");
   try {
     mkdirSync(path.dirname(stateFile), { recursive: true });
-    writeFileSync(stateFile, "{", "utf8");
+    writeFileSync(stateFile, "null", "utf8");
     const health = getWindowsOpenCodePluginHealth(configDir, testInstallerOptions);
     assert.equal(health.runtimeState.status, "corrupt");
     assert.throws(() => installWindowsOpenCodePlugin(payload, configDir, testInstallerOptions), /corrupt state file/);
@@ -132,30 +132,36 @@ test("doctor exposes actionable installation health and install result next step
   try {
     const health = getWindowsOpenCodePluginHealth(configDir, testInstallerOptions);
     assert.equal(health.installed, false);
-    assert.equal(health.problems.some((problem) => problem.code === "PLUGIN_MISSING"), true);
+    assert.equal(
+      health.problems.some((problem) => problem.code === "PLUGIN_MISSING"),
+      true
+    );
     assert.equal(health.recommendedActions[0], "Run the OpenCode++ Windows installer.");
-    assert.match(renderWindowsInstallSuccess({
-      action: "installed",
-      ok: true,
-      version: getOpenCodePlusplusPackageVersion(),
-      paths: {
-        configDir,
-        pluginFile: path.join(configDir, "plugins", "opencode-plusplus.js"),
-        stateFile: path.join(configDir, "opencode-plusplus", "state.json"),
-        manifestFile: path.join(configDir, "opencode-plusplus", "installation.json"),
-        agentFile: path.join(configDir, "agents", "opencode-plusplus.md"),
-        legacyFiles: []
-      },
-      pluginExists: true,
-      enabled: true,
-      modeInstalled: true,
-      commandsInstalled: 0,
-      agentFilesInstalled: 1,
-      legacyFilesRemoved: 0,
-      message: "installed",
-      health,
-      repairedItems: []
-    }), /Restart OpenCode Desktop/);
+    assert.match(
+      renderWindowsInstallSuccess({
+        action: "installed",
+        ok: true,
+        version: getOpenCodePlusplusPackageVersion(),
+        paths: {
+          configDir,
+          pluginFile: path.join(configDir, "plugins", "opencode-plusplus.js"),
+          stateFile: path.join(configDir, "opencode-plusplus", "state.json"),
+          manifestFile: path.join(configDir, "opencode-plusplus", "installation.json"),
+          agentFile: path.join(configDir, "agents", "opencode-plusplus.md"),
+          legacyFiles: []
+        },
+        pluginExists: true,
+        enabled: true,
+        modeInstalled: true,
+        commandsInstalled: 0,
+        agentFilesInstalled: 1,
+        legacyFilesRemoved: 0,
+        message: "installed",
+        health,
+        repairedItems: []
+      }),
+      /Restart OpenCode Desktop/
+    );
   } finally {
     rmSync(configDir, { recursive: true, force: true });
   }
@@ -174,4 +180,23 @@ test("real Desktop launch smoke is explicit and cleans up its process", () => {
   assert.match(smoke, /OPENCODE_DESKTOP_EXE/);
   assert.match(smoke, /isOpenCodeRunning\(\)/);
   assert.match(smoke, /taskkill\.exe/);
+});
+
+test("Windows EXE exposes health, repair, and doctor actions without changing ownership scope", () => {
+  const installer = readFileSync(path.resolve("src/installer/windows-installer.cs"), "utf8");
+  const smoke = readFileSync(path.resolve("scripts/smoke-windows-installer.mjs"), "utf8");
+  assert.match(installer, /HasArgument\(args, "--repair"\)/);
+  assert.match(installer, /HasArgument\(args, "--doctor"\)/);
+  assert.match(installer, /HasArgument\(args, "--health"\)/);
+  assert.match(installer, /openCodeProcessDetected/);
+  assert.match(installer, /configDirectoryWritable/);
+  assert.match(installer, /existingInstallationVersion/);
+  assert.match(installer, /Cannot install over corrupt OpenCode\+\+ metadata/);
+  assert.match(installer, /Restart OpenCode Desktop/);
+  assert.match(installer, /PluginVersionMarker/);
+  assert.doesNotMatch(installer, /app\.asar.*write|WriteAllBytes\([^)]*asar/i);
+  assert.match(smoke, /--doctor/);
+  assert.match(smoke, /--repair/);
+  assert.match(smoke, /state\.json.*\{"/);
+  assert.match(smoke, /Close OpenCode Desktop before running/);
 });

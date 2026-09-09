@@ -15,6 +15,7 @@ const configDir = mkdtempSync(path.join(tmpdir(), "OpenCodePP 安装器-"));
 try {
   assert.equal(existsSync(executable), true, "Build the Windows installer before running its smoke test.");
   assert.ok(statSync(executable).size < 12 * 1024 * 1024);
+  if (isOpenCodeRunning()) throw new Error("Close OpenCode Desktop before running the Windows installer smoke test.");
   await runConfigSmoke();
   verifyRealBundle();
   if (process.argv.includes("--require-real-desktop-launch")) await verifyRealDesktopLaunch();
@@ -24,6 +25,14 @@ try {
 }
 
 async function runConfigSmoke() {
+  const freshDoctor = runInstallerRaw(["--config-dir", configDir, "--skip-host-patch", "--doctor", "--json"]);
+  assert.equal(freshDoctor.status, 1);
+  const freshHealth = JSON.parse(freshDoctor.stdout);
+  assert.equal(freshHealth.installed, false);
+  assert.equal(freshHealth.pluginInstalled, false);
+  assert.equal(freshHealth.agentInstalled, false);
+  assert.ok(freshHealth.recommendedActions.length > 0);
+
   const legacyFiles = ["opencode-plusplus-on.md", "opencode-plusplus-off.md", "opencode-plusplus-status.md", "plusplus-task.md", "plusplus-verify.md"].map(
     (name) => path.join(configDir, "commands", name)
   );
@@ -37,6 +46,9 @@ async function runConfigSmoke() {
   assert.equal(installed.version, packageVersion);
   assert.equal(installed.commandsInstalled, 0);
   assert.equal(installed.modeInstalled, true);
+  assert.equal(installed.health.healthy, true);
+  assert.equal(installed.health.openCodeProcessDetected, false);
+  assert.equal(installed.repairedItems.length, 0);
   const agentFile = path.join(configDir, "agents", "opencode-plusplus.md");
   assert.equal(existsSync(agentFile), true);
   assert.match(readFileSync(agentFile, "utf8"), /mode: primary/);
@@ -46,17 +58,44 @@ async function runConfigSmoke() {
   const pluginModule = await import(`${pathToFileURL(pluginFile).href}?smoke=${Date.now()}`);
   assert.equal([...new Set(Object.values(pluginModule))].length, 1);
   assert.equal(typeof [...new Set(Object.values(pluginModule))][0], "function");
+  const doctorAfterInstall = runInstaller(["--config-dir", configDir, "--skip-host-patch", "--doctor", "--json"]);
+  assert.equal(doctorAfterInstall.healthy, true);
+  assert.equal(doctorAfterInstall.existingInstallationVersion, packageVersion);
   assert.equal(runInstaller(["--config-dir", configDir, "--skip-host-patch", "--disable", "--json"]).enabled, false);
   assert.equal(runInstaller(["--config-dir", configDir, "--skip-host-patch", "--enable", "--json"]).enabled, true);
+
+  writeFileSync(pluginFile, "broken plugin", "utf8");
+  writeFileSync(agentFile, "broken agent", "utf8");
+  writeFileSync(path.join(configDir, "opencode-plusplus", "installation.json"), JSON.stringify({ schemaVersion: 2, version: "0.0.0" }), "utf8");
+  const repaired = runInstaller(["--config-dir", configDir, "--skip-host-patch", "--repair", "--json"]);
+  assert.equal(repaired.action, "repaired");
+  assert.equal(repaired.health.healthy, true);
+  assert.equal(repaired.enabled, true);
+  assert.ok(repaired.repairedItems.includes("plugin"));
+  assert.ok(repaired.repairedItems.includes("agent"));
+  assert.ok(repaired.repairedItems.includes("installation manifest"));
+
+  writeFileSync(path.join(configDir, "opencode-plusplus", "state.json"), "{", "utf8");
+  const recovered = runInstaller(["--config-dir", configDir, "--skip-host-patch", "--repair", "--json"]);
+  assert.equal(recovered.health.healthy, true);
+  assert.equal(recovered.enabled, true);
+  assert.ok(recovered.repairedItems.includes("runtime state"));
   runInstaller(["--config-dir", configDir, "--skip-host-patch", "--uninstall", "--json"]);
   assert.equal(existsSync(pluginFile), false);
   assert.equal(existsSync(agentFile), false);
+  const afterUninstall = runInstallerRaw(["--config-dir", configDir, "--skip-host-patch", "--doctor", "--json"]);
+  assert.equal(afterUninstall.status, 1);
+  assert.equal(JSON.parse(afterUninstall.stdout).installed, false);
 }
 
 function runInstaller(args) {
-  const result = spawnSync(executable, args, { encoding: "utf8", windowsHide: true, env: process.env });
+  const result = runInstallerRaw(args);
   if (result.status !== 0) throw new Error(`Installer failed (${result.status}): ${result.stderr || result.stdout}`);
   return JSON.parse(result.stdout);
+}
+
+function runInstallerRaw(args) {
+  return spawnSync(executable, args, { encoding: "utf8", windowsHide: true, env: process.env });
 }
 
 function verifyRealBundle() {

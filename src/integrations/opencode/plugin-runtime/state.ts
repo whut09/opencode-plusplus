@@ -66,6 +66,18 @@ export function readOpenCodePlusPlusPluginStatus(stateFile = defaultOpenCodePlus
   }
 
   const state = result.value;
+  if (!isRecord(state)) {
+    return {
+      installed: true,
+      enabled: true,
+      version,
+      stateFile,
+      revision: 0,
+      installedAt: null,
+      updatedAt: null,
+      diagnostic: "State file must contain a JSON object; protection remains enabled."
+    };
+  }
   if (state.schemaVersion !== OPENCODE_PLUSPLUS_PLUGIN_STATE_SCHEMA_VERSION) {
     return {
       installed: true,
@@ -130,4 +142,8 @@ export function renderOpenCodePlusPlusPluginStatus(status: OpenCodePlusPlusPlugi
     ...(status.updatedAt ? [`Updated: ${status.updatedAt}`] : []),
     ...(status.diagnostic ? [`Diagnostic: ${status.diagnostic}`] : [])
   ].join("\n");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -145,7 +145,14 @@ export function repairWindowsOpenCodePlugin(
     const removed = removeLegacyFiles(paths);
     if (removed > 0) repairedItems.push("legacy files");
   }
-  return makeReport("repaired", paths, repairedItems.length ? `OpenCode++ repaired: ${repairedItems.join(", ")}.` : "OpenCode++ installation is healthy.", 0, options, repairedItems);
+  return makeReport(
+    "repaired",
+    paths,
+    repairedItems.length ? `OpenCode++ repaired: ${repairedItems.join(", ")}.` : "OpenCode++ installation is healthy.",
+    0,
+    options,
+    repairedItems
+  );
 }
 
 export function uninstallWindowsOpenCodePlugin(configDir?: string, options: WindowsInstallerHealthOptions = {}): WindowsInstallReport {
