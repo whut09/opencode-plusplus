@@ -12,6 +12,7 @@ import { createPluginHarnessError } from "./protocol.js";
 import type { PluginPrepareArgs, PluginPrepareResult } from "./types.js";
 import { pluginInterventionSnapshot, recordPluginContextSelection } from "./interventions.js";
 import { buildVerificationPlan } from "../../../../core/verification/planner.js";
+import { readTaskIdentity, writeTaskIdentity } from "./task-resume.js";
 
 export async function preparePluginHarnessTask(root: string, args: PluginPrepareArgs): Promise<PluginPrepareResult> {
   const staged = await runPluginStage("prepare", () => preparePluginHarnessTaskInternal(root, args));
@@ -43,9 +44,11 @@ export async function preparePluginHarnessTask(root: string, args: PluginPrepare
 async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepareArgs): Promise<PluginPrepareResult> {
   const context = await loadPluginHarnessContext(root);
   const taskId = taskSlug(args.task);
+  const currentWorkingTreeFingerprint = currentSidecarWorkingTreeHash(root);
+  const existingIdentity = args.sessionId ? readTaskIdentity(root, taskId, args.sessionId) : undefined;
   const existing = readJsonDiagnostic<TaskRunManifest>(taskRunManifestPath(root, taskId));
   const manifest =
-    existing.status === "ok" && existing.value.id === taskId
+    !args.forceRebuild && existing.status === "ok" && existing.value.id === taskId
       ? existing.value
       : (await startApplicationTask({ repo: root, task: args.task, type: args.type ?? "auto" })).manifest;
   const resolvedTaskId = manifest.id || taskId;
@@ -56,6 +59,18 @@ async function preparePluginHarnessTaskInternal(root: string, args: PluginPrepar
     sessionId: args.sessionId ?? null,
     updatedAt: new Date().toISOString()
   });
+  if (args.sessionId) {
+    writeTaskIdentity(root, {
+      schemaVersion: "opencode-plusplus.task-resume.v1",
+      sessionId: args.sessionId,
+      repositoryRoot: root,
+      taskId: resolvedTaskId,
+      baseWorkingTreeFingerprint: existingIdentity?.baseWorkingTreeFingerprint ?? currentWorkingTreeFingerprint,
+      latestWorkingTreeFingerprint: currentWorkingTreeFingerprint,
+      status: "active",
+      updatedAt: new Date().toISOString()
+    });
+  }
   const artifacts = manifest.files ?? [];
   const selectedFiles = manifest.mustInspect;
   const verification = manifest.verification ?? buildVerificationPlan(context, { changedFiles: manifest.contextFiles ?? selectedFiles });

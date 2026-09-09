@@ -74,6 +74,7 @@ export interface PluginPrepareArgs {
   task: string;
   type?: PluginHarnessTaskType;
   sessionId?: string | null;
+  forceRebuild?: boolean;
 }
 
 export interface PluginRetrieveArgs {

@@ -121,7 +121,10 @@ export function parsePrepareArgs(args: unknown): PluginPrepareArgs | string {
   const type = readTaskType(record.type);
   if (type === false) return 'prepare type must be "bugfix", "feature", or "refactor".';
   const sessionId = readOptionalSessionId(record.sessionId);
-  return type ? { task, type, ...(sessionId ? { sessionId } : {}) } : { task, ...(sessionId ? { sessionId } : {}) };
+  if (record.forceRebuild !== undefined && typeof record.forceRebuild !== "boolean") return "prepare forceRebuild must be boolean.";
+  return type
+    ? { task, type, ...(sessionId ? { sessionId } : {}), ...(record.forceRebuild === true ? { forceRebuild: true } : {}) }
+    : { task, ...(sessionId ? { sessionId } : {}), ...(record.forceRebuild === true ? { forceRebuild: true } : {}) };
 }
 
 export function parseRetrieveArgs(args: unknown): PluginRetrieveArgs | string {
