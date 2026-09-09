@@ -5,6 +5,7 @@ import type { TaskRunManifest } from "../../../outputs/task-run.js";
 import { notifyOpenCodePlusPlusToast, notifyPluginInterventionSignals, type OpenCodeSidecarRecorder, type OpenCodeSidecarRuntimeContext } from "./events.js";
 import { loadPluginHarnessContext } from "./harness/context.js";
 import { readPluginEvaluateState, readPluginHarnessSession, taskRunManifestPath } from "./harness/session.js";
+import { readWorkflowState } from "./harness/workflow.js";
 import type { IdleVerifier } from "./idle-verify.js";
 import type { OpenCodeSidecarVerifyResult } from "../sidecar.js";
 
@@ -134,6 +135,15 @@ export function createSessionLifecycle(options: SessionLifecycleOptions): Sessio
 export function buildCompactingContext(root: string, sessionId?: string): string | undefined {
   const lines: string[] = [];
   const session = readPluginHarnessSession(root, sessionId);
+  const workflow = sessionId ? readWorkflowState(root, sessionId) : undefined;
+  if (workflow?.resumeCandidates?.length) {
+    lines.push(
+      `OpenCode++ resume candidates: ${workflow.resumeCandidates
+        .map((candidate) => `${candidate.identity.taskId} [${candidate.compatibility}] from ${candidate.identity.sessionId}: ${candidate.reason}`)
+        .join(" | ")}`
+    );
+    lines.push("OpenCode++ will not restore a mismatched repository or an unconfirmed candidate automatically; call opencode_plusplus_resume with action inspect.");
+  }
   if (session) {
     lines.push(`OpenCode++ taskId: ${session.taskId} (task: ${session.task})`);
   }

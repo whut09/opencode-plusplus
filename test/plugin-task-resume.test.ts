@@ -45,6 +45,25 @@ test("Desktop resume inspects and restores a compatible unfinished task into a n
   }
 });
 
+test("new Desktop sessions expose resume diagnostics during context compaction", async () => {
+  const root = createResumeFixture();
+  try {
+    const plugin = await createOpenCodePlusPlusSidecar({ directory: root }, { stateFile: path.join(root, "state.json") });
+    const tools = plugin.tool as Record<string, { execute: (args?: unknown) => Promise<string> }>;
+    await tools.opencode_plusplus_prepare.execute({ task: "fix login timeout", sessionId: "session-old" });
+    const message = plugin["chat.message"] as (input: unknown) => Promise<void>;
+    await message({ sessionID: "session-new", agent: "opencode-plusplus" });
+    const compact = plugin["experimental.session.compacting"] as (input: unknown, output: unknown) => Promise<void>;
+    const output: { context: string[] } = { context: [] };
+    await compact({ sessionID: "session-new" }, output);
+    assert.match(output.context[0] ?? "", /resume candidates/i);
+    assert.match(output.context[0] ?? "", /fix-login-timeout/);
+    await message({ sessionID: "session-new", agent: "build" });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("Desktop resume never restores an unknown candidate", async () => {
   const root = createResumeFixture();
   try {
