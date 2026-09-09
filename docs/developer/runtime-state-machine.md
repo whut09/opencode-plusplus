@@ -95,3 +95,15 @@ stateDiagram-v2
 Every successful phase transition atomically rewrites `state.json`. Execute, Collect, Evaluate, Decide, and Persist also write phase artifacts under `.agent-context/runs/<run-id>/iterations/<iteration>/`. Resume uses `--resume <run-id>` and starts from `currentPhase`; completed phases are not executed again. Collect trace writes include deterministic iteration/event markers, so retrying after an interrupted persist cannot duplicate executor or normalized event steps.
 
 Sandbox preparation remains process-local. A resumed git-worktree run creates a fresh worktree and reapplies the persisted executor patch before continuing. The sandbox adapter is discarded on successful completion, executor failure, phase interruption, and exceptions during post-prepare initialization.
+
+## Desktop Task Resume
+
+The Windows Desktop plugin has a separate task identity record for each `taskId` and `sessionId`:
+
+```text
+.agent-context/sidecar/task-identity-<task-id>-<session-id>.json
+```
+
+When a new OpenCode++ session is activated, the plugin only discovers and records candidates. It does not select the latest task automatically. `repositoryRoot` must match, and a resumable task must be unfinished. A matching latest working-tree fingerprint produces `resume-verification`; a changed fingerprint is marked `stale-task` and requires an explicit context/validation rebuild. A foreign repository is diagnostic-only and cannot be restored.
+
+The `opencode_plusplus_resume` tool separates `inspect` from `resume`. Inspection reports candidate compatibility and persistence issues. Resume requires `confirmed: true` and a current target session. Compatible recovery creates a new session association and continues at `evaluate`; it does not treat old output as a new verification claim. Stale recovery retains the task id while rebuilding context and the validation plan. A pending human-review request can be located by task/request id across sessions; approval updates the boundary and returns the task to `dirty`, after which evaluation collects fresh evidence without restarting preparation.

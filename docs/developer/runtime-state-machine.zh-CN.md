@@ -27,3 +27,15 @@ Plan -> PrepareSandbox -> Execute -> Collect -> Evaluate -> Decide -> Persist ->
 ## Sandbox
 
 git-worktree sandbox 在准备成功、executor 失败、阶段异常、正常结束和 resume 后都必须清理。回滚记录 patch 和 decision，不对用户工作树自动执行破坏性命令。
+
+## Desktop 任务恢复
+
+Windows Desktop 插件为每个 `taskId` 和 `sessionId` 保存独立任务身份：
+
+```text
+.agent-context/sidecar/task-identity-<task-id>-<session-id>.json
+```
+
+新的 OpenCode++ session 激活时，插件只发现并记录候选，不会自动选择最近任务。`repositoryRoot` 必须匹配，且候选必须是未完成状态。latest 工作树指纹匹配时为 `resume-verification`；指纹变化时标记为 `stale-task`，必须明确重建 context 和 validation plan。其他仓库的候选只能提供诊断，不能恢复。
+
+`opencode_plusplus_resume` 将 `inspect` 和 `resume` 分开。inspect 返回候选兼容性和持久化问题；resume 必须带 `confirmed: true` 和当前目标 session。兼容恢复会建立新的 session 关联并从 evaluate 继续，不会把旧输出冒充新验证。stale 恢复保留 task id，同时重建 context 和 validation plan。待处理 human-review 请求可以按 task/request id 跨 session 查找；批准后更新 boundary，并将任务恢复为 `dirty`，随后 evaluate 重新采集证据，不重新开始 prepare。
